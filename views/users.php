@@ -1,0 +1,68 @@
+<?php
+/**
+ * Team / Users Management View (Admin only)
+ */
+?>
+
+<div class="page-header">
+    <h2><i class="fas fa-users-cog"></i> Team Management</h2>
+</div>
+
+<div class="grid-2">
+    <!-- Add User -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-user-plus"></i> Add Team Member</h3></div>
+        <div class="card-body">
+            <form method="POST" action="index.php?page=settings&action=add_user">
+                <?= Security::csrfField() ?>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select name="role" class="form-select">
+                        <option value="agent">Agent</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="text" name="password" class="form-input" value="agent123">
+                    <small class="form-hint">Default password. User should change after first login.</small>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add User</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Team List -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-users"></i> Team Members</h3></div>
+        <div class="card-body">
+            <div class="team-list">
+                <?php foreach ($data['users'] as $u): ?>
+                <div class="team-member <?= $u['is_active'] ? '' : 'inactive' ?>">
+                    <div class="team-avatar"><?= strtoupper(substr($u['name'], 0, 1)) ?></div>
+                    <div class="team-info">
+                        <div class="team-name"><?= htmlspecialchars($u['name']) ?></div>
+                        <div class="team-email"><?= htmlspecialchars($u['email']) ?></div>
+                    </div>
+                    <span class="role-badge role-<?= $u['role'] ?>"><?= ucfirst($u['role']) ?></span>
+                    <?php if ($u['id'] != Security::userId()): ?>
+                    <a href="index.php?page=settings&action=toggle_user&id=<?= $u['id'] ?>" 
+                       class="btn btn-ghost btn-xs" title="<?= $u['is_active'] ? 'Deactivate' : 'Activate' ?>">
+                        <i class="fas fa-<?= $u['is_active'] ? 'toggle-on text-success' : 'toggle-off text-danger' ?>"></i>
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+</div>
