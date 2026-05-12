@@ -8,6 +8,18 @@
     <h2><i class="fas fa-file-import"></i> Smart Import</h2>
 </div>
 
+<?php if (!empty($_SESSION['import_job_id'])): ?>
+<!-- Active Import Progress -->
+<div class="import-progress" id="importProgress" data-job-id="<?= $_SESSION['import_job_id'] ?>">
+    <div class="progress-header">
+        <h4><div class="progress-spinner"></div> Import in Progress</h4>
+    </div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="progress-text">Starting...</div>
+    <div class="progress-stats"></div>
+</div>
+<?php unset($_SESSION['import_job_id']); endif; ?>
+
 <div class="grid-2">
     <!-- Upload Card -->
     <div class="card">

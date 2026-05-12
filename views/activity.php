@@ -12,7 +12,7 @@
     <div class="card-body">
         <?php if (!empty($data['activities'])): ?>
         <div class="activity-table">
-            <table class="data-table">
+            <table class="data-table" id="activityTable">
                 <thead>
                     <tr>
                         <th>Time</th>

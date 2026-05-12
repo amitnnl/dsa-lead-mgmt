@@ -179,7 +179,7 @@ foreach ($data['grade_counts'] as $g) { $gradeCounts[$g['lead_grade']] = $g['cou
         <a href="index.php?page=leads" class="btn btn-ghost btn-xs">View All</a>
     </div>
     <div class="card-body table-responsive">
-        <table class="data-table">
+        <table class="data-table" id="dashRecentTable">
             <thead>
                 <tr>
                     <th>Name</th>

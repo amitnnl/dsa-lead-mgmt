@@ -1,9 +1,12 @@
 <?php
 /**
  * Import Controller - Excel/CSV file import with column mapping
+ * Supports both synchronous (small files) and background queue (large files)
  */
 class ImportController {
     private Database $db;
+    /** Threshold: files with more rows than this go to background queue */
+    private int $asyncThreshold = 500;
 
     public function __construct() {
         $this->db = new Database();
@@ -57,11 +60,15 @@ class ImportController {
             header('Location: index.php?page=import'); return;
         }
 
+        // Count rows for async threshold decision
+        $rowCount = $this->countRows($savedPath, $ext);
+
         // Store in session for mapping step
         $_SESSION['import_file'] = $savedPath;
         $_SESSION['import_filename'] = $file['name'];
         $_SESSION['import_headers'] = $headers;
         $_SESSION['import_ext'] = $ext;
+        $_SESSION['import_row_count'] = $rowCount;
 
         // Show mapping page
         $data = [
@@ -69,6 +76,8 @@ class ImportController {
             'headers' => $headers,
             'filename' => $file['name'],
             'db_columns' => $this->getDbColumns(),
+            'row_count' => $rowCount,
+            'is_large' => $rowCount > $this->asyncThreshold,
         ];
         require __DIR__ . '/../views/layout.php';
     }
@@ -81,6 +90,8 @@ class ImportController {
         $filePath = $_SESSION['import_file'] ?? '';
         $ext = $_SESSION['import_ext'] ?? 'csv';
         $filename = $_SESSION['import_filename'] ?? 'unknown';
+        $rowCount = $_SESSION['import_row_count'] ?? 0;
+        $headers = $_SESSION['import_headers'] ?? [];
 
         if (!file_exists($filePath)) {
             $_SESSION['flash'] = ['type' => 'error', 'message' => 'Import file not found.'];
@@ -100,44 +111,96 @@ class ImportController {
             'status' => 'processing',
         ]);
 
-        // Read all rows
-        $rows = $this->readAllRows($filePath, $ext);
-        $headers = $_SESSION['import_headers'] ?? [];
+        // Decision: sync or async
+        if ($rowCount > $this->asyncThreshold) {
+            // === ASYNC: Queue for background processing ===
+            $processor = new JobProcessor();
+            $jobId = $processor->queueImport($batchId, $filePath, $ext, $mapping, $defaultSource, $defaultStatus, $headers);
 
-        $imported = 0;
-        $skipped = 0;
-        $errors = 0;
-
-        foreach ($rows as $row) {
+            // Try to process immediately (inline async simulation)
+            // This works for files up to ~2000 rows within PHP's execution time
+            // For truly massive files, the worker.php cron handles it
             try {
-                $leadData = $this->mapRowToLead($row, $headers, $mapping, $defaultSource, $defaultStatus);
-                if (empty($leadData['customer_name'])) { $skipped++; continue; }
-
-                $leadData['import_batch_id'] = $batchId;
-                $leadData['lead_score'] = LeadScorer::calculate($leadData);
-                $leadData['lead_grade'] = LeadScorer::getLabel($leadData['lead_score']);
-
-                $this->db->insert('leads', $leadData);
-                $imported++;
+                set_time_limit(300); // Allow up to 5 minutes
+                $processor->processNext();
             } catch (\Exception $e) {
-                $errors++;
+                // Job stays in queue for the cron worker
             }
+
+            // Cleanup session
+            unset($_SESSION['import_file'], $_SESSION['import_filename'], $_SESSION['import_headers'], $_SESSION['import_ext'], $_SESSION['import_row_count']);
+
+            // Check if job completed inline
+            $jobStatus = JobProcessor::getJobStatus($jobId);
+            if ($jobStatus && $jobStatus['status'] === 'completed') {
+                $_SESSION['flash'] = ['type' => 'success', 'message' => "Import complete! {$jobStatus['imported_rows']} leads imported, {$jobStatus['skipped_rows']} skipped, {$jobStatus['error_rows']} errors."];
+            } else {
+                $_SESSION['flash'] = ['type' => 'success', 'message' => "Large file queued for processing ({$rowCount} rows). Check import history for progress."];
+                $_SESSION['import_job_id'] = $jobId;
+            }
+        } else {
+            // === SYNC: Process immediately (small files) ===
+            $rows = $this->readAllRows($filePath, $ext);
+            $imported = 0;
+            $skipped = 0;
+            $errors = 0;
+
+            foreach ($rows as $row) {
+                try {
+                    $leadData = $this->mapRowToLead($row, $headers, $mapping, $defaultSource, $defaultStatus);
+                    if (empty($leadData['customer_name'])) { $skipped++; continue; }
+
+                    $leadData['import_batch_id'] = $batchId;
+                    $leadData['lead_score'] = LeadScorer::calculate($leadData);
+                    $leadData['lead_grade'] = LeadScorer::getLabel($leadData['lead_score']);
+
+                    $this->db->insert('leads', $leadData);
+                    $imported++;
+                } catch (\Exception $e) {
+                    $errors++;
+                }
+            }
+
+            // Update batch
+            $this->db->update('import_batches', [
+                'total_rows' => count($rows),
+                'imported_rows' => $imported,
+                'skipped_rows' => $skipped,
+                'error_rows' => $errors,
+                'status' => 'completed',
+            ], 'id = ?', [$batchId]);
+
+            // Cleanup session
+            unset($_SESSION['import_file'], $_SESSION['import_filename'], $_SESSION['import_headers'], $_SESSION['import_ext'], $_SESSION['import_row_count']);
+
+            $_SESSION['flash'] = ['type' => 'success', 'message' => "Import complete! {$imported} leads imported, {$skipped} skipped, {$errors} errors."];
         }
 
-        // Update batch
-        $this->db->update('import_batches', [
-            'total_rows' => count($rows),
-            'imported_rows' => $imported,
-            'skipped_rows' => $skipped,
-            'error_rows' => $errors,
-            'status' => 'completed',
-        ], 'id = ?', [$batchId]);
-
-        // Cleanup session
-        unset($_SESSION['import_file'], $_SESSION['import_filename'], $_SESSION['import_headers'], $_SESSION['import_ext']);
-
-        $_SESSION['flash'] = ['type' => 'success', 'message' => "Import complete! {$imported} leads imported, {$skipped} skipped, {$errors} errors."];
         header('Location: index.php?page=import');
+    }
+
+    /**
+     * Count rows in a file (fast scan without loading everything into memory)
+     */
+    private function countRows(string $path, string $ext): int {
+        if ($ext === 'csv') {
+            $count = 0;
+            $handle = fopen($path, 'r');
+            while (fgetcsv($handle) !== false) $count++;
+            fclose($handle);
+            return max(0, $count - 1); // Exclude header
+        }
+        // For xlsx - just count rows from XML
+        $rows = $this->readAllRows($path, $ext);
+        return count($rows);
+    }
+
+    // ===== Public wrappers for JobProcessor access =====
+    public function readAllRowsPublic(string $path, string $ext): array {
+        return $this->readAllRows($path, $ext);
+    }
+    public function mapRowToLeadPublic(array $row, array $headers, array $mapping, string $defaultSource, string $defaultStatus): array {
+        return $this->mapRowToLead($row, $headers, $mapping, $defaultSource, $defaultStatus);
     }
 
     private function readHeaders(string $path, string $ext): array {

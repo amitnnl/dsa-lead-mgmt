@@ -10,6 +10,12 @@ $dbColumns = $data['db_columns'] ?? [];
     <div>
         <a href="index.php?page=import" class="btn btn-ghost btn-xs"><i class="fas fa-arrow-left"></i> Back</a>
         <h2>Map Columns — <?= htmlspecialchars($data['filename'] ?? '') ?></h2>
+        <div style="display:flex;gap:10px;margin-top:6px">
+            <span class="badge badge-info"><i class="fas fa-table"></i> <?= number_format($data['row_count'] ?? 0) ?> rows detected</span>
+            <?php if (!empty($data['is_large'])): ?>
+            <span class="badge badge-warning"><i class="fas fa-bolt"></i> Large file — will use background processing</span>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
