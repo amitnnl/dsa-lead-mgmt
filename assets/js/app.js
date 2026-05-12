@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSelectAll();
     initDataTables();
     initImportProgress();
+    initTheme();
 });
 
 /* ===== Sidebar Toggle ===== */
@@ -319,6 +320,35 @@ function initImportProgress() {
     }
 
     pollStatus();
+}
+
+/* ===== Theme Switching ===== */
+function initTheme() {
+    const toggle = document.getElementById('themeToggle');
+    if (!toggle) return;
+
+    const icon = toggle.querySelector('i');
+    
+    // Set initial icon based on class applied by head script
+    if (document.body.classList.contains('light-mode')) {
+        icon.className = 'fas fa-sun';
+    }
+
+    toggle.addEventListener('click', () => {
+        const isLight = document.body.classList.toggle('light-mode');
+        document.documentElement.classList.toggle('light-mode');
+        
+        // Update icon
+        icon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+        
+        // Persist
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        
+        // Redraw DataTables to apply theme changes if needed
+        if (typeof jQuery !== 'undefined' && jQuery.fn.DataTable) {
+            jQuery('.dataTable').DataTable().draw();
+        }
+    });
 }
 
 /* ===== Helpers ===== */

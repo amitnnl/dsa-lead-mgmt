@@ -13,6 +13,13 @@
     <link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" rel="stylesheet">
     <link href="assets/css/app.css" rel="stylesheet">
+    <script>
+        // Immediate theme check to prevent flash
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.add('light-mode');
+            document.addEventListener('DOMContentLoaded', () => document.body.classList.add('light-mode'));
+        }
+    </script>
 </head>
 <body>
     <!-- Sidebar -->
@@ -77,6 +84,9 @@
                 <div class="search-results" id="searchResults"></div>
             </div>
             <div class="topbar-actions">
+                <button id="themeToggle" class="btn-icon" title="Toggle Theme" style="margin-right:8px">
+                    <i class="fas fa-moon"></i>
+                </button>
                 <a href="index.php?page=leads&action=create" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus"></i> New Lead
                 </a>

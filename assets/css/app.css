@@ -15,6 +15,17 @@
     --shadow: 0 4px 24px rgba(0,0,0,0.3); --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
     --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
 }
+
+/* Light Mode Overrides */
+body.light-mode {
+    --bg: #f8fafc; --bg-2: #f1f5f9; --surface: #ffffff; --surface-2: #f8fafc; --surface-3: #f1f5f9;
+    --text: #1e293b; --text-dim: #475569; --text-muted: #64748b;
+    --border: rgba(0,0,0,0.06); --border-hover: rgba(0,0,0,0.1);
+    --shadow: 0 4px 20px rgba(0,0,0,0.05); --shadow-lg: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+body { transition: background-color 0.3s ease, color 0.3s ease; }
+.card, .sidebar, .topbar, .nav-item, .kpi-card { transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
 html { font-size: 14px; }
 body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; overflow-x:hidden; }
 a { color:var(--primary-hover); text-decoration:none; transition:color var(--transition); }
