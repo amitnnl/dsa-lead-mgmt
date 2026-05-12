@@ -1,42 +1,61 @@
 <?php
 /**
  * DSA LeadFlow - One-Click Setup Script
- * Run this once via browser: http://localhost/dsa-lead%20mgmt/setup.php
+ * Run this once via browser: http://yourdomain.com/setup.php
  * It creates the database, tables, and default admin user.
+ * 
+ * For cPanel: Update config/database.php with your cPanel DB credentials FIRST,
+ * then create the database via cPanel → MySQL Databases, then run this script.
  */
 
 session_start();
 $messages = [];
 $errors = [];
 
-// Step 1: Connect to MySQL (without database)
+// Load database config
+require_once __DIR__ . '/config/database.php';
+
+// Step 1: Connect to MySQL (without database — try to create it)
 try {
-    $pdo = new PDO("mysql:host=localhost;charset=utf8mb4", 'root', '', [
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";charset=utf8mb4", DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     ]);
     $messages[] = "✅ Connected to MySQL server";
 } catch (PDOException $e) {
-    $errors[] = "❌ Cannot connect to MySQL: " . $e->getMessage();
-    showPage($messages, $errors);
-    exit;
+    // On cPanel, we might not have CREATE DATABASE privilege
+    // Try connecting directly to the database instead
+    try {
+        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]);
+        $messages[] = "✅ Connected to MySQL database '" . DB_NAME . "'";
+        // Skip steps 2 & 3 - already connected to the database
+        goto create_tables;
+    } catch (PDOException $e2) {
+        $errors[] = "❌ Cannot connect to MySQL: " . $e->getMessage();
+        showPage($messages, $errors);
+        exit;
+    }
 }
 
-// Step 2: Create database
+// Step 2: Create database (may fail on cPanel — that's OK if DB already exists)
 try {
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS `dsa_lead_mgmt` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    $messages[] = "✅ Database 'dsa_lead_mgmt' created/verified";
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    $messages[] = "✅ Database '" . DB_NAME . "' created/verified";
 } catch (PDOException $e) {
-    $errors[] = "❌ Cannot create database: " . $e->getMessage();
+    $messages[] = "ℹ️ Database creation skipped (cPanel may require manual creation). Using existing database.";
 }
 
 // Step 3: Switch to database
 try {
-    $pdo->exec("USE `dsa_lead_mgmt`");
+    $pdo->exec("USE `" . DB_NAME . "`");
 } catch (PDOException $e) {
-    $errors[] = "❌ Cannot use database: " . $e->getMessage();
+    $errors[] = "❌ Cannot use database '" . DB_NAME . "': " . $e->getMessage();
     showPage($messages, $errors);
     exit;
 }
+
+create_tables:
 
 // Step 4: Create tables
 $tables = [

@@ -1,0 +1,18 @@
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Prompt file (not needed on server)
+prompt.md

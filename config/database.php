@@ -1,12 +1,21 @@
 <?php
 /**
  * Database Configuration
+ * 
+ * For cPanel shared hosting:
+ * 1. Create a MySQL database via cPanel → MySQL Databases
+ * 2. Create a database user and assign it to the database (ALL PRIVILEGES)
+ * 3. Update the credentials below
+ * 
+ * cPanel database names are usually prefixed: cpanel_username_dbname
+ * cPanel db users are usually prefixed: cpanel_username_dbuser
  */
 
+// ===== EDIT THESE FOR YOUR SERVER =====
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'dsa_lead_mgmt');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'dsa_lead_mgmt');       // cPanel: youruser_dsa_lead_mgmt
+define('DB_USER', 'root');                 // cPanel: youruser_dbuser
+define('DB_PASS', '');                     // cPanel: your_db_password
 define('DB_CHARSET', 'utf8mb4');
 
 /**

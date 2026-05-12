@@ -5,7 +5,12 @@
 
 define('APP_NAME', 'DSA LeadFlow');
 define('APP_VERSION', '1.0.0');
-define('APP_URL', 'http://localhost/dsa-lead%20mgmt');
+
+// Auto-detect URL (works on both localhost and cPanel)
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+define('APP_URL', $protocol . '://' . $host . $scriptDir);
 
 // Upload settings
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
