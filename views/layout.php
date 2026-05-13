@@ -76,6 +76,9 @@
             <a href="index.php?page=settings&action=api_keys" class="nav-item <?= ($data['page'] ?? '') === 'api_keys' ? 'active' : '' ?>">
                 <i class="fas fa-plug"></i><span>API Integration</span>
             </a>
+            <a href="index.php?page=settings&action=bank_rates" class="nav-item <?= ($data['page'] ?? '') === 'bank_rates' ? 'active' : '' ?>">
+                <i class="fas fa-university"></i><span>Bank Rates</span>
+            </a>
             <a href="index.php?page=settings&action=login_history" class="nav-item <?= ($data['page'] ?? '') === 'login_history' ? 'active' : '' ?>">
                 <i class="fas fa-shield-alt"></i><span>Login History</span>
             </a>

@@ -139,6 +139,130 @@ $statusColor = LEAD_STATUSES[$lead['status']]['color'] ?? '#6b7280';
         </div>
         <?php endif; ?>
 
+        <!-- Multi-Bank Rate Comparison (Vehicle Loans Only) -->
+        <?php if ($isVehicleLoan && !empty($data['bank_rates'])): ?>
+        <div class="card" style="margin-top:20px; border-left:4px solid #6366f1">
+            <div class="card-header"><h3><i class="fas fa-university" style="color:#6366f1"></i> Bank Rate Comparison</h3></div>
+            <div class="card-body" style="overflow-x:auto">
+                <table style="width:100%; border-collapse:collapse; font-size:13px">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--border)">
+                            <th style="text-align:left; padding:10px 8px; color:var(--text-dim); font-weight:600">Bank</th>
+                            <th style="text-align:center; padding:10px 8px; color:var(--text-dim); font-weight:600">Rate (p.a.)</th>
+                            <th style="text-align:center; padding:10px 8px; color:var(--text-dim); font-weight:600">Max Tenure</th>
+                            <th style="text-align:center; padding:10px 8px; color:var(--text-dim); font-weight:600">LTV</th>
+                            <th style="text-align:center; padding:10px 8px; color:var(--text-dim); font-weight:600">Processing</th>
+                            <th style="text-align:right; padding:10px 8px; color:var(--text-dim); font-weight:600">EMI (3yr)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php 
+                        $loanAmt = $lead['loan_amount'] ?: 500000;
+                        $bestRate = PHP_FLOAT_MAX;
+                        foreach ($data['bank_rates'] as $br) {
+                            $bestRate = min($bestRate, $br['interest_rate']);
+                        }
+                        foreach ($data['bank_rates'] as $br): 
+                            $r = $br['interest_rate'] / 12 / 100;
+                            $n = 36;
+                            $emi = $r > 0 ? $loanAmt * $r * pow(1+$r, $n) / (pow(1+$r, $n) - 1) : $loanAmt / $n;
+                            $isBest = $br['interest_rate'] == $bestRate;
+                        ?>
+                        <tr style="border-bottom:1px solid var(--border); <?= $isBest ? 'background:rgba(16,185,129,0.05)' : '' ?>">
+                            <td style="padding:10px 8px; font-weight:600">
+                                <?= htmlspecialchars($br['bank_name']) ?>
+                                <?php if ($isBest): ?><span style="color:#10b981; font-size:10px; margin-left:4px">★ BEST</span><?php endif; ?>
+                            </td>
+                            <td style="text-align:center; padding:10px 8px; color:<?= $isBest ? '#10b981' : 'var(--text)' ?>; font-weight:700"><?= $br['interest_rate'] ?>%</td>
+                            <td style="text-align:center; padding:10px 8px"><?= $br['max_tenure_years'] ?> yrs</td>
+                            <td style="text-align:center; padding:10px 8px"><?= $br['max_ltv'] ?>%</td>
+                            <td style="text-align:center; padding:10px 8px; color:var(--text-dim)"><?= $br['processing_fee'] ?></td>
+                            <td style="text-align:right; padding:10px 8px; font-weight:700; color:<?= $isBest ? '#10b981' : '#f59e0b' ?>">₹<?= number_format(round($emi)) ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <div style="margin-top:12px; font-size:11px; color:var(--text-muted)">
+                    <i class="fas fa-info-circle"></i> EMI calculated on ₹<?= number_format($loanAmt) ?> loan for 3 years. Actual rates may vary.
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Insurance Cross-Sell (for Approved/Disbursed vehicle leads) -->
+        <?php if ($isVehicleLoan && in_array($lead['status'], ['Approved','Disbursed'])): ?>
+        <div class="card" style="margin-top:20px; border-left:4px solid #10b981">
+            <div class="card-header">
+                <h3><i class="fas fa-shield-alt" style="color:#10b981"></i> Insurance Cross-Sell</h3>
+            </div>
+            <div class="card-body">
+                <?php if (!empty($data['insurance'])): ?>
+                <div style="display:grid; gap:12px">
+                    <?php foreach ($data['insurance'] as $ins): ?>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:14px; background:var(--surface-2); border-radius:10px">
+                        <div>
+                            <div style="font-weight:600; font-size:14px"><?= htmlspecialchars($ins['provider']) ?></div>
+                            <div style="font-size:12px; color:var(--text-dim)"><?= $ins['policy_type'] ?> · <?= $ins['policy_number'] ?: 'Pending' ?></div>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-weight:700; color:#10b981">₹<?= number_format($ins['premium']) ?></div>
+                            <span class="status-pill" style="--pill-color:<?= $ins['status'] === 'Active' ? '#10b981' : '#f59e0b' ?>; font-size:10px"><?= $ins['status'] ?></span>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
+                <div style="margin-top:16px; padding:16px; background:linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,214,160,0.05)); border-radius:12px; border:1px solid rgba(16,185,129,0.15)">
+                    <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:#10b981"><i class="fas fa-lightbulb"></i> Upsell Opportunity</div>
+                    <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px">
+                        Vehicle loan approved! Offer insurance to earn 15-20% commission on the premium.
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap">
+                        <span style="padding:6px 12px; background:rgba(16,185,129,0.12); color:#10b981; border-radius:20px; font-size:11px; font-weight:600">Comprehensive ~₹<?= number_format(round(($lead['vehicle_price'] ?: $lead['loan_amount']) * 0.028)) ?></span>
+                        <span style="padding:6px 12px; background:rgba(245,158,11,0.12); color:#f59e0b; border-radius:20px; font-size:11px; font-weight:600">Zero-Dep +₹<?= number_format(round(($lead['vehicle_price'] ?: $lead['loan_amount']) * 0.008)) ?></span>
+                        <span style="padding:6px 12px; background:rgba(139,92,246,0.12); color:#8b5cf6; border-radius:20px; font-size:11px; font-weight:600">PA Cover ~₹500</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- RC Transfer Tracker (for Disbursed vehicle leads) -->
+        <?php if ($isVehicleLoan && $lead['status'] === 'Disbursed' && !empty($data['rc_transfer'])): ?>
+        <?php $rc = $data['rc_transfer']; ?>
+        <div class="card" style="margin-top:20px; border-left:4px solid #8b5cf6">
+            <div class="card-header"><h3><i class="fas fa-exchange-alt" style="color:#8b5cf6"></i> RC Transfer Status</h3></div>
+            <div class="card-body">
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px">
+                    <?php 
+                    $steps = [
+                        ['Form 29', $rc['form29_status'], 'fa-file-alt'],
+                        ['Form 30', $rc['form30_status'], 'fa-file-contract'],
+                        ['NOC', $rc['noc_status'] === 'Not Required' ? 'N/A' : $rc['noc_status'], 'fa-stamp'],
+                        ['Hypothecation', $rc['hypothecation_status'] === 'None' ? 'N/A' : $rc['hypothecation_status'], 'fa-university'],
+                    ];
+                    foreach ($steps as $step):
+                        $color = $step[1] === 'Completed' || $step[1] === 'Received' || $step[1] === 'Endorsed' ? '#10b981' : ($step[1] === 'Pending' ? '#f59e0b' : '#64748b');
+                    ?>
+                    <div style="text-align:center; padding:16px 8px; background:var(--surface-2); border-radius:10px; border-top:3px solid <?= $color ?>">
+                        <i class="fas <?= $step[2] ?>" style="font-size:20px; color:<?= $color ?>; margin-bottom:8px; display:block"></i>
+                        <div style="font-size:12px; font-weight:600"><?= $step[0] ?></div>
+                        <div style="font-size:11px; color:<?= $color ?>; font-weight:700; margin-top:4px"><?= $step[1] ?></div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <div style="display:flex; gap:16px; font-size:13px">
+                    <div><span style="color:var(--text-dim)">Seller:</span> <strong><?= htmlspecialchars($rc['seller_name'] ?? '-') ?></strong></div>
+                    <div><span style="color:var(--text-dim)">Buyer:</span> <strong><?= htmlspecialchars($rc['buyer_name'] ?? '-') ?></strong></div>
+                    <?php if ($rc['rto_name']): ?>
+                    <div><span style="color:var(--text-dim)">RTO:</span> <strong><?= htmlspecialchars($rc['rto_name']) ?></strong></div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Digital Vault (Documents) -->
         <div class="card" style="margin-top:24px">
             <div class="card-header">

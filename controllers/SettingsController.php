@@ -25,6 +25,9 @@ class SettingsController {
             case 'slabs': $this->slabs(); break;
             case 'save_slab': $this->saveSlab(); break;
             case 'login_history': $this->loginHistory(); break;
+            case 'bank_rates': $this->bankRates(); break;
+            case 'save_bank_rate': $this->saveBankRate(); break;
+            case 'delete_bank_rate': $this->deleteBankRate(); break;
             default: $this->profile(); break;
         }
     }
@@ -235,5 +238,44 @@ class SettingsController {
              ORDER BY l.created_at DESC LIMIT 100"
         );
         require __DIR__ . '/../views/layout.php';
+    }
+
+    // ===== Bank Rate Management =====
+
+    private function bankRates(): void {
+        if (!Security::isAdmin()) { header('Location: index.php'); return; }
+        $data = ['page' => 'bank_rates'];
+        $data['rates'] = $this->db->fetchAll("SELECT * FROM bank_rates WHERE is_active = 1 ORDER BY loan_type, interest_rate ASC");
+        require __DIR__ . '/../views/layout.php';
+    }
+
+    private function saveBankRate(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !Security::validateCsrf() || !Security::isAdmin()) {
+            header('Location: index.php?page=settings&action=bank_rates'); return;
+        }
+        $bank = Security::sanitize($_POST['bank_name'] ?? '');
+        $type = Security::sanitize($_POST['loan_type'] ?? '');
+        $rate = floatval($_POST['interest_rate'] ?? 0);
+        $tenure = intval($_POST['max_tenure_years'] ?? 5);
+        $ltv = intval($_POST['max_ltv'] ?? 80);
+        $fee = Security::sanitize($_POST['processing_fee'] ?? '1%');
+
+        if ($bank && $type && $rate) {
+            $this->db->query(
+                "INSERT INTO bank_rates (bank_name, loan_type, interest_rate, max_tenure_years, max_ltv, processing_fee) 
+                 VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE interest_rate = ?, max_tenure_years = ?, max_ltv = ?, processing_fee = ?",
+                [$bank, $type, $rate, $tenure, $ltv, $fee, $rate, $tenure, $ltv, $fee]
+            );
+            $_SESSION['flash'] = ['type' => 'success', 'message' => "Bank rate for {$bank} updated."];
+        }
+        header('Location: index.php?page=settings&action=bank_rates');
+    }
+
+    private function deleteBankRate(): void {
+        if (!Security::isAdmin()) { header('Location: index.php'); return; }
+        $id = intval($_GET['id'] ?? 0);
+        $this->db->update('bank_rates', ['is_active' => 0], 'id = ?', [$id]);
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Bank rate removed.'];
+        header('Location: index.php?page=settings&action=bank_rates');
     }
 }

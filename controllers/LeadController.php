@@ -145,6 +145,29 @@ class LeadController {
             'notes' => 'Viewed full lead profile'
         ]);
 
+        // Vehicle Finance: Bank Rates, Insurance, RC Transfer
+        $vehicleTypes = ['Used Car Loan','Used Bike Loan','Used Commercial Vehicle Loan','New Car Loan','New Bike Loan'];
+        if (in_array($lead['loan_type'] ?? '', $vehicleTypes)) {
+            try {
+                $data['bank_rates'] = $this->db->fetchAll(
+                    "SELECT * FROM bank_rates WHERE loan_type = ? AND is_active = 1 ORDER BY interest_rate ASC",
+                    [$lead['loan_type']]
+                );
+            } catch (Exception $e) { $data['bank_rates'] = []; }
+
+            try {
+                $data['insurance'] = $this->db->fetchAll(
+                    "SELECT * FROM insurance_policies WHERE lead_id = ? ORDER BY created_at DESC", [$id]
+                );
+            } catch (Exception $e) { $data['insurance'] = []; }
+
+            try {
+                $data['rc_transfer'] = $this->db->fetch(
+                    "SELECT * FROM rc_transfers WHERE lead_id = ? ORDER BY id DESC LIMIT 1", [$id]
+                );
+            } catch (Exception $e) { $data['rc_transfer'] = null; }
+        }
+
         require __DIR__ . '/../views/layout.php';
     }
 
