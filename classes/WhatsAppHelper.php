@@ -31,6 +31,12 @@ class WhatsAppHelper {
             case 'followup':
                 return "Hi {$name}, I tried calling you regarding your {$loan} application but couldn't connect. Please let me know a good time to talk.";
             
+            case 'vehicle_info':
+                $make = $lead['vehicle_make'] ?? '';
+                $model = $lead['vehicle_model'] ?? '';
+                $year = $lead['vehicle_year'] ?? '';
+                return "Hi {$name}, regarding the {$year} {$make} {$model} — we have exciting finance options starting at just 10.5% p.a. with up to 100% on-road funding. Shall I share the details?";
+            
             default:
                 return "Hi {$name}, regarding your {$loan} application...";
         }

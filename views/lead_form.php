@@ -137,6 +137,81 @@ $isEdit = $mode === 'edit';
             </div>
         </div>
 
+        <!-- Vehicle Details (shown for vehicle loan types) -->
+        <div class="card" id="vehicleSection" style="display:none">
+            <div class="card-header"><h3><i class="fas fa-car"></i> Vehicle Details</h3></div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle Make</label>
+                        <select name="vehicle_make" class="form-select" id="vehicleMake">
+                            <option value="">Select Make</option>
+                            <?php foreach (VEHICLE_MAKES as $make): ?>
+                            <option value="<?= $make ?>" <?= ($lead['vehicle_make'] ?? '') === $make ? 'selected' : '' ?>><?= $make ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Model / Variant</label>
+                        <input type="text" name="vehicle_model" class="form-input" value="<?= htmlspecialchars($lead['vehicle_model'] ?? '') ?>" placeholder="e.g. Swift VXI, i20 Asta">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Manufacturing Year</label>
+                        <select name="vehicle_year" class="form-select">
+                            <option value="">Select Year</option>
+                            <?php for ($y = date('Y'); $y >= 2000; $y--): ?>
+                            <option value="<?= $y ?>" <?= ($lead['vehicle_year'] ?? '') == $y ? 'selected' : '' ?>><?= $y ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Registration Number</label>
+                        <input type="text" name="vehicle_reg_no" class="form-input" value="<?= htmlspecialchars($lead['vehicle_reg_no'] ?? '') ?>" placeholder="e.g. DL 01 AB 1234" style="text-transform:uppercase">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>KM Driven</label>
+                        <input type="number" name="vehicle_km" class="form-input" value="<?= $lead['vehicle_km'] ?? '' ?>" placeholder="e.g. 45000">
+                    </div>
+                    <div class="form-group">
+                        <label>Fuel Type</label>
+                        <select name="vehicle_fuel" class="form-select">
+                            <option value="">Select</option>
+                            <?php foreach (FUEL_TYPES as $ft): ?>
+                            <option value="<?= $ft ?>" <?= ($lead['vehicle_fuel'] ?? '') === $ft ? 'selected' : '' ?>><?= $ft ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Owner Serial (1st/2nd/3rd)</label>
+                        <select name="vehicle_owner" class="form-select">
+                            <option value="">Select</option>
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <option value="<?= $i ?>" <?= ($lead['vehicle_owner'] ?? '') == $i ? 'selected' : '' ?>><?= $i ?><?= $i === 1 ? 'st' : ($i === 2 ? 'nd' : ($i === 3 ? 'rd' : 'th')) ?> Owner</option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Price (₹)</label>
+                        <input type="number" name="vehicle_price" class="form-input" value="<?= $lead['vehicle_price'] ?? '' ?>" step="1000" placeholder="Asking price">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Existing Hypothecation?</label>
+                    <select name="vehicle_hypothecated" class="form-select">
+                        <option value="No" <?= ($lead['vehicle_hypothecated'] ?? '') === 'No' ? 'selected' : '' ?>>No — Vehicle is free</option>
+                        <option value="Yes" <?= ($lead['vehicle_hypothecated'] ?? '') === 'Yes' ? 'selected' : '' ?>>Yes — Existing loan on vehicle</option>
+                    </select>
+                    <small class="form-hint">If hypothecated, NOC from previous financer will be required.</small>
+                </div>
+            </div>
+        </div>
+
         <!-- Lead Management -->
         <div class="card">
             <div class="card-header"><h3><i class="fas fa-cogs"></i> Lead Management</h3></div>
@@ -187,3 +262,21 @@ $isEdit = $mode === 'edit';
         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> <?= $isEdit ? 'Update Lead' : 'Create Lead' ?></button>
     </div>
 </form>
+
+<script>
+// Toggle Vehicle Details section based on Loan Type
+const loanSelect = document.querySelector('select[name="loan_type"]');
+const vehicleSection = document.getElementById('vehicleSection');
+const vehicleTypes = ['Used Car Loan','Used Bike Loan','Used Commercial Vehicle Loan','New Car Loan','New Bike Loan'];
+
+function toggleVehicle() {
+    if (vehicleTypes.includes(loanSelect.value)) {
+        vehicleSection.style.display = '';
+        vehicleSection.style.animation = 'slideDown 0.3s ease';
+    } else {
+        vehicleSection.style.display = 'none';
+    }
+}
+loanSelect.addEventListener('change', toggleVehicle);
+toggleVehicle(); // Run on page load for edit mode
+</script>

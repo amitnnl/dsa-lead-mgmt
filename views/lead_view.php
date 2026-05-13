@@ -108,6 +108,37 @@ $statusColor = LEAD_STATUSES[$lead['status']]['color'] ?? '#6b7280';
             </div>
         </div>
 
+        <!-- Vehicle Details (if applicable) -->
+        <?php 
+        $isVehicleLoan = in_array($lead['loan_type'] ?? '', ['Used Car Loan','Used Bike Loan','Used Commercial Vehicle Loan','New Car Loan','New Bike Loan']);
+        if ($isVehicleLoan && !empty($lead['vehicle_make'])): 
+        ?>
+        <div class="card" style="margin-top:20px; border-left:4px solid #f59e0b">
+            <div class="card-header"><h3><i class="fas fa-car" style="color:#f59e0b"></i> Vehicle Details</h3></div>
+            <div class="card-body">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0">
+                    <div class="detail-grid">
+                        <div class="detail-row"><span class="detail-label">Make</span><span class="detail-value"><?= htmlspecialchars($lead['vehicle_make']) ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Model</span><span class="detail-value"><?= htmlspecialchars($lead['vehicle_model'] ?? '-') ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Year</span><span class="detail-value"><?= $lead['vehicle_year'] ?? '-' ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Reg. No.</span><span class="detail-value"><strong><?= htmlspecialchars($lead['vehicle_reg_no'] ?? '-') ?></strong></span></div>
+                    </div>
+                    <div class="detail-grid">
+                        <div class="detail-row"><span class="detail-label">KM Driven</span><span class="detail-value"><?= $lead['vehicle_km'] ? number_format($lead['vehicle_km']) . ' km' : '-' ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Fuel</span><span class="detail-value"><?= htmlspecialchars($lead['vehicle_fuel'] ?? '-') ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Owner</span><span class="detail-value"><?= $lead['vehicle_owner'] ? $lead['vehicle_owner'] . ' Owner' : '-' ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Vehicle Price</span><span class="detail-value">₹<?= number_format($lead['vehicle_price'] ?? 0) ?></span></div>
+                    </div>
+                </div>
+                <?php if (($lead['vehicle_hypothecated'] ?? 'No') === 'Yes'): ?>
+                <div style="margin-top:12px; padding:10px 14px; background:rgba(239,68,68,0.08); border-radius:8px; border:1px solid rgba(239,68,68,0.2)">
+                    <span style="color:#ef4444; font-size:12px; font-weight:600"><i class="fas fa-exclamation-triangle"></i> Vehicle is Hypothecated — NOC required from previous financer</span>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Digital Vault (Documents) -->
         <div class="card" style="margin-top:24px">
             <div class="card-header">

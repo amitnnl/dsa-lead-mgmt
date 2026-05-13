@@ -36,17 +36,35 @@ define('LEAD_SCORES', [
 
 // Loan types
 define('LOAN_TYPES', [
+    'Used Car Loan',
+    'Used Bike Loan',
+    'Used Commercial Vehicle Loan',
+    'New Car Loan',
+    'New Bike Loan',
     'Personal Loan',
     'Home Loan',
     'Business Loan',
     'Gold Loan',
-    'Vehicle Loan',
     'Education Loan',
     'Loan Against Property',
     'Credit Card',
     'Insurance',
     'Other',
 ]);
+
+// Vehicle Makes (common Indian market)
+define('VEHICLE_MAKES', [
+    'Maruti Suzuki', 'Hyundai', 'Tata', 'Mahindra', 'Kia',
+    'Honda', 'Toyota', 'MG', 'Skoda', 'Volkswagen',
+    'Renault', 'Nissan', 'Ford', 'Chevrolet', 'Jeep',
+    'BMW', 'Mercedes-Benz', 'Audi', 'Volvo',
+    'Hero', 'Bajaj', 'TVS', 'Royal Enfield', 'Yamaha', 'Honda 2W', 'KTM', 'Suzuki 2W',
+    'Ashok Leyland', 'TATA CV', 'Eicher', 'BharatBenz',
+    'Other',
+]);
+
+// Fuel types
+define('FUEL_TYPES', ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid']);
 
 // Lead sources
 define('LEAD_SOURCES', [

@@ -172,6 +172,16 @@ class LeadController {
             'assigned_to'     => !empty($post['assigned_to']) ? intval($post['assigned_to']) : null,
             'remarks'         => Security::sanitize($post['remarks'] ?? ''),
             'follow_up_date'  => !empty($post['follow_up_date']) ? $post['follow_up_date'] : null,
+            // Vehicle fields
+            'vehicle_make'         => Security::sanitize($post['vehicle_make'] ?? ''),
+            'vehicle_model'        => Security::sanitize($post['vehicle_model'] ?? ''),
+            'vehicle_year'         => !empty($post['vehicle_year']) ? intval($post['vehicle_year']) : null,
+            'vehicle_reg_no'       => strtoupper(Security::sanitize($post['vehicle_reg_no'] ?? '')),
+            'vehicle_km'           => !empty($post['vehicle_km']) ? intval($post['vehicle_km']) : null,
+            'vehicle_fuel'         => Security::sanitize($post['vehicle_fuel'] ?? ''),
+            'vehicle_owner'        => !empty($post['vehicle_owner']) ? intval($post['vehicle_owner']) : null,
+            'vehicle_price'        => floatval($post['vehicle_price'] ?? 0),
+            'vehicle_hypothecated' => in_array($post['vehicle_hypothecated'] ?? '', ['Yes','No']) ? $post['vehicle_hypothecated'] : 'No',
         ];
     }
 
