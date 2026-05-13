@@ -24,6 +24,11 @@ class ApiController {
             $this->handleV1($action);
             return;
         }
+        // Public routes (no auth required)
+        if ($action === 'public_inquiry') {
+            $this->publicInquiry();
+            return;
+        }
 
         // Internal routes use session auth
         if (!isset($_SESSION['user_id'])) {
@@ -524,5 +529,62 @@ class ApiController {
             'remarks'         => $input['remarks'] ?? $defaults['remarks'],
             'follow_up_date'  => !empty($input['follow_up_date']) ? $input['follow_up_date'] : ($defaults['follow_up_date'] ?? null),
         ];
+    }
+
+    // ==========================================
+    //  PUBLIC ENDPOINT (No Auth)
+    // ==========================================
+
+    private function publicInquiry(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Method not allowed']); return;
+        }
+
+        $name = htmlspecialchars(strip_tags(trim($_POST['name'] ?? '')));
+        $phone = preg_replace('/[^0-9+\-\s()]/', '', trim($_POST['phone'] ?? ''));
+        $loanType = htmlspecialchars(strip_tags(trim($_POST['loan_type'] ?? 'Used Car Loan')));
+        $amount = floatval($_POST['amount'] ?? 0);
+        $vehicleMake = htmlspecialchars(strip_tags(trim($_POST['vehicle_make'] ?? '')));
+        $vehicleModel = htmlspecialchars(strip_tags(trim($_POST['vehicle_model'] ?? '')));
+
+        if (empty($name) || empty($phone)) {
+            echo json_encode(['error' => 'Name and phone are required']); return;
+        }
+
+        // Rate limiting: max 5 inquiries per IP per hour
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $recentCount = $this->db->fetch(
+            "SELECT COUNT(*) as cnt FROM leads WHERE lead_source = 'EMI Calculator' AND remarks LIKE ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)",
+            ["%IP:$ip%"]
+        )['cnt'] ?? 0;
+
+        if ($recentCount >= 5) {
+            echo json_encode(['error' => 'Too many requests. Please try again later.']); return;
+        }
+
+        $leadData = [
+            'customer_name'  => $name,
+            'phone_number'   => $phone,
+            'loan_type'      => $loanType,
+            'loan_amount'    => $amount,
+            'vehicle_make'   => $vehicleMake,
+            'vehicle_model'  => $vehicleModel,
+            'lead_source'    => 'EMI Calculator',
+            'status'         => 'New',
+            'remarks'        => "Online inquiry from EMI Calculator. IP:$ip",
+            'lead_score'     => 60,
+            'lead_grade'     => 'Warm',
+        ];
+
+        try {
+            $leadId = $this->db->insert('leads', $leadData);
+            $this->db->insert('activity_log', [
+                'lead_id' => $leadId, 'action' => 'Lead Created',
+                'notes' => 'Auto-created from public EMI Calculator inquiry'
+            ]);
+            echo json_encode(['success' => true, 'message' => 'Your inquiry has been submitted! Our team will contact you soon.']);
+        } catch (Exception $e) {
+            echo json_encode(['error' => 'Something went wrong. Please try again.']);
+        }
     }
 }

@@ -76,6 +76,51 @@ foreach ($data['grade_counts'] as $g) { $gradeCounts[$g['lead_grade']] = $g['cou
         </div>
     </div>
 
+    <!-- Vehicle Finance Overview -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-car" style="color:#f59e0b"></i> Vehicle Finance</h3>
+            <span class="badge badge-warning"><?= $data['vehicle_leads'] ?? 0 ?> leads</span>
+        </div>
+        <div class="card-body">
+            <?php if (!empty($data['vehicle_by_type'])): ?>
+            <div style="display:flex; gap:16px; margin-bottom:16px">
+                <div style="flex:1; background:rgba(245,158,11,0.08); border-radius:12px; padding:16px; text-align:center; border:1px solid rgba(245,158,11,0.15)">
+                    <div style="font-size:22px; font-weight:800; color:#f59e0b">₹<?= number_format(($data['vehicle_pipeline'] ?? 0) / 100000, 1) ?>L</div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:4px">Vehicle Pipeline</div>
+                </div>
+                <div style="flex:1; background:rgba(16,185,129,0.08); border-radius:12px; padding:16px; text-align:center; border:1px solid rgba(16,185,129,0.15)">
+                    <div style="font-size:22px; font-weight:800; color:#10b981"><?= $data['vehicle_leads'] ?? 0 ?></div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:4px">Active Cases</div>
+                </div>
+            </div>
+            <div class="distribution-list">
+                <?php 
+                $vColors = ['#f59e0b','#ef4444','#8b5cf6','#06b6d4','#10b981'];
+                foreach ($data['vehicle_by_type'] as $i => $vt): 
+                ?>
+                <div class="dist-item">
+                    <div class="dist-info">
+                        <span class="dist-dot" style="background:<?= $vColors[$i % count($vColors)] ?>"></span>
+                        <span class="dist-name"><?= htmlspecialchars($vt['loan_type']) ?></span>
+                        <span class="dist-count"><?= $vt['count'] ?></span>
+                    </div>
+                    <div class="dist-value">₹<?= number_format(($vt['volume'] ?? 0) / 100000, 1) ?>L</div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php else: ?>
+            <div class="empty-state-sm">
+                <i class="fas fa-car"></i>
+                <p>No vehicle finance leads yet. Start adding with the "Used Car Loan" type.</p>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<!-- Loan Type Distribution Row -->
+<div class="grid-2">
     <!-- Loan Type Distribution -->
     <div class="card">
         <div class="card-header">

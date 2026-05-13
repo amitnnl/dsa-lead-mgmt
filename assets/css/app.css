@@ -538,3 +538,10 @@ table.dataTable thead .sorting_desc:after { opacity:1; color:var(--primary-hover
 .checkbox-label input[type="checkbox"] { accent-color:var(--primary); width:16px; height:16px; cursor:pointer; }
 .checkbox-label span { color:var(--text-dim); }
 
+/* ===== VEHICLE FINANCE HELPERS ===== */
+.dist-value { font-size:13px; font-weight:700; color:var(--text-dim); white-space:nowrap; }
+.empty-state-sm { text-align:center; padding:30px 20px; color:var(--text-muted); }
+.empty-state-sm i { font-size:32px; margin-bottom:10px; display:block; opacity:0.5; }
+.empty-state-sm p { font-size:13px; max-width:260px; margin:0 auto; }
+.badge-warning { background:rgba(245,158,11,0.15); color:#f59e0b; }
+

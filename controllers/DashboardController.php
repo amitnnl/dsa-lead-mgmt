@@ -63,6 +63,22 @@ class DashboardController {
             $params
         );
 
+        // Grade counts
+        $data['grade_counts'] = $this->db->fetchAll(
+            "SELECT lead_grade, COUNT(*) as count FROM leads WHERE $where AND lead_grade IS NOT NULL GROUP BY lead_grade",
+            $params
+        );
+
+        // Vehicle Finance Stats
+        $vehicleWhere = "$where AND loan_type IN ('Used Car Loan','Used Bike Loan','Used Commercial Vehicle Loan','New Car Loan','New Bike Loan')";
+        $data['vehicle_leads'] = $this->db->count('leads', $vehicleWhere, $params);
+        $vPipeline = $this->db->fetch("SELECT SUM(loan_amount) as total FROM leads WHERE $vehicleWhere AND status NOT IN ('Rejected','Disbursed')", $params);
+        $data['vehicle_pipeline'] = $vPipeline['total'] ?? 0;
+        $data['vehicle_by_type'] = $this->db->fetchAll(
+            "SELECT loan_type, COUNT(*) as count, SUM(loan_amount) as volume FROM leads WHERE $vehicleWhere GROUP BY loan_type ORDER BY count DESC",
+            $params
+        );
+
         // Recent leads
         $data['recent_leads'] = $this->db->fetchAll(
             "SELECT l.*, u.name as agent_name FROM leads l LEFT JOIN users u ON l.assigned_to = u.id WHERE $where ORDER BY l.created_at DESC LIMIT 8",

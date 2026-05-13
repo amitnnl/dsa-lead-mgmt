@@ -185,9 +185,36 @@
                 </div>
             </div>
 
-            <a href="index.php?page=login" class="apply-btn">
+            <button class="apply-btn" onclick="document.getElementById('inquiryForm').style.display='block'; this.style.display='none'">
                 <i class="fas fa-paper-plane"></i> Apply for Vehicle Loan Now
-            </a>
+            </button>
+
+            <!-- Inquiry Form (appears on Apply click) -->
+            <div id="inquiryForm" style="display:none; margin-top:20px">
+                <h3 style="font-size:15px; margin-bottom:16px; color:var(--primary-hover)"><i class="fas fa-user-plus"></i> Quick Inquiry</h3>
+                <div class="field">
+                    <label>Your Name *</label>
+                    <input type="text" id="inqName" placeholder="Full Name" required>
+                </div>
+                <div class="field">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="inqPhone" placeholder="9876543210" maxlength="10" required>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label>Vehicle Make</label>
+                        <input type="text" id="inqMake" placeholder="e.g. Maruti, Honda">
+                    </div>
+                    <div class="field">
+                        <label>Model</label>
+                        <input type="text" id="inqModel" placeholder="e.g. Swift, City">
+                    </div>
+                </div>
+                <button class="apply-btn" onclick="submitInquiry()" id="submitBtn">
+                    <i class="fas fa-check-circle"></i> Submit Inquiry
+                </button>
+                <div id="inqMessage" style="display:none; margin-top:12px; padding:12px; border-radius:10px; text-align:center; font-size:13px; font-weight:600"></div>
+            </div>
         </div>
     </div>
 
@@ -250,6 +277,63 @@
 
     // Initial calculation
     calculateEMI();
+
+    // Submit public inquiry
+    function submitInquiry() {
+        const name = $('inqName').value.trim();
+        const phone = $('inqPhone').value.trim();
+        const make = $('inqMake').value.trim();
+        const model = $('inqModel').value.trim();
+        const msg = $('inqMessage');
+        const btn = $('submitBtn');
+        const types = { car:'Used Car Loan', bike:'Used Bike Loan', commercial:'Used Commercial Vehicle Loan' };
+
+        if (!name || !phone) {
+            msg.style.display = 'block';
+            msg.style.background = 'rgba(239,68,68,0.1)';
+            msg.style.color = '#ef4444';
+            msg.textContent = 'Please enter your name and phone number.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('phone', phone);
+        formData.append('loan_type', types[$('vehicleType').value] || 'Used Car Loan');
+        formData.append('amount', $('loanAmount').value);
+        formData.append('vehicle_make', make);
+        formData.append('vehicle_model', model);
+
+        fetch('index.php?page=api&action=public_inquiry', { method:'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                msg.style.display = 'block';
+                if (data.success) {
+                    msg.style.background = 'rgba(16,185,129,0.1)';
+                    msg.style.color = '#10b981';
+                    msg.textContent = '✅ ' + data.message;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Submitted!';
+                    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                } else {
+                    msg.style.background = 'rgba(239,68,68,0.1)';
+                    msg.style.color = '#ef4444';
+                    msg.textContent = '❌ ' + (data.error || 'Please try again.');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Inquiry';
+                }
+            })
+            .catch(() => {
+                msg.style.display = 'block';
+                msg.style.background = 'rgba(239,68,68,0.1)';
+                msg.style.color = '#ef4444';
+                msg.textContent = '❌ Network error. Please try again.';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Inquiry';
+            });
+    }
     </script>
 </body>
 </html>

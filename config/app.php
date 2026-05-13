@@ -72,6 +72,8 @@ define('LEAD_SOURCES', [
     'Referral',
     'Phone Inquiry',
     'Website',
+    'EMI Calculator',
+    'Vehicle Inquiry',
     'Social Media',
     'Excel Import',
     'Partner',
