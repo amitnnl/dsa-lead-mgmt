@@ -1,6 +1,7 @@
 <?php
 /**
  * Dashboard View
+ * @var array $data
  */
 $statusCounts = [];
 foreach ($data['status_counts'] as $s) { $statusCounts[$s['status']] = $s['count']; }
@@ -8,41 +9,46 @@ $gradeCounts = [];
 foreach ($data['grade_counts'] as $g) { $gradeCounts[$g['lead_grade']] = $g['count']; }
 ?>
 
-<!-- KPI Cards -->
+<!-- Financial KPIs -->
 <div class="kpi-grid">
     <div class="kpi-card kpi-accent-indigo">
-        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+        <div class="kpi-icon"><i class="fas fa-wallet"></i></div>
         <div class="kpi-body">
-            <div class="kpi-value" data-count="<?= $data['total_leads'] ?>"><?= number_format($data['total_leads']) ?></div>
-            <div class="kpi-label">Total Leads</div>
+            <div class="kpi-value">₹<?= number_format($data['estimated_commissions'] / 1000, 1) ?>K</div>
+            <div class="kpi-label">Commission Pipeline</div>
         </div>
-        <div class="kpi-trend"><span class="badge badge-info"><?= $data['today_leads'] ?> today</span></div>
+        <div class="kpi-trend"><span class="badge badge-dim">Est. at 1.5% avg</span></div>
     </div>
     <div class="kpi-card kpi-accent-green">
-        <div class="kpi-icon"><i class="fas fa-rupee-sign"></i></div>
+        <div class="kpi-icon"><i class="fas fa-hand-holding-usd"></i></div>
         <div class="kpi-body">
-            <div class="kpi-value">₹<?= number_format($data['pipeline_value'] / 100000, 1) ?>L</div>
-            <div class="kpi-label">Pipeline Value</div>
+            <div class="kpi-value">₹<?= number_format($data['earned_commissions'] / 1000, 1) ?>K</div>
+            <div class="kpi-label">Earned Commission</div>
         </div>
-        <div class="kpi-trend"><span class="badge badge-success"><?= $data['month_leads'] ?> this month</span></div>
+        <div class="kpi-trend"><span class="badge badge-success"><?= $data['total_leads'] ?> active leads</span></div>
     </div>
     <div class="kpi-card kpi-accent-amber">
-        <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi-icon"><i class="fas fa-file-invoice-dollar"></i></div>
         <div class="kpi-body">
-            <div class="kpi-value"><?= $data['conversion_rate'] ?>%</div>
-            <div class="kpi-label">Conversion Rate</div>
+            <div class="kpi-value">₹<?= number_format($data['disbursed_value'] / 100000, 1) ?>L</div>
+            <div class="kpi-label">Disbursed Value</div>
         </div>
-        <div class="kpi-trend"><span class="badge badge-warning">₹<?= number_format($data['disbursed_value'] / 100000, 1) ?>L disbursed</span></div>
+        <div class="kpi-trend"><span class="badge badge-warning">₹<?= number_format($data['pipeline_value'] / 100000, 1) ?>L in pipeline</span></div>
     </div>
+    <!-- Target Progress Card -->
     <div class="kpi-card kpi-accent-rose">
-        <div class="kpi-icon"><i class="fas fa-bell"></i></div>
-        <div class="kpi-body">
-            <div class="kpi-value"><?= $data['followups_today'] ?></div>
-            <div class="kpi-label">Follow-ups Today</div>
-        </div>
-        <div class="kpi-trend">
-            <span class="badge badge-hot"><?= $gradeCounts['Hot'] ?? 0 ?> hot</span>
-            <span class="badge badge-warm"><?= $gradeCounts['Warm'] ?? 0 ?> warm</span>
+        <div class="kpi-body" style="width:100%">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+                <span class="kpi-label" style="margin:0">MONTHLY TARGET</span>
+                <span class="kpi-value" style="font-size:18px"><?= $data['target_progress'] ?>%</span>
+            </div>
+            <div class="progress-track" style="height:8px; background:rgba(0,0,0,0.05)">
+                <div class="progress-fill" style="width:<?= $data['target_progress'] ?>%; background:var(--accent-color)"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px; color:#64748b">
+                <span>₹<?= number_format($data['disbursed_value'] / 100000, 1) ?>L</span>
+                <span>Goal: ₹<?= number_format($data['monthly_target'] / 100000, 0) ?>L</span>
+            </div>
         </div>
     </div>
 </div>

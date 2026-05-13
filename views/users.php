@@ -27,9 +27,20 @@
                     <label>Role</label>
                     <select name="role" class="form-select">
                         <option value="agent">Agent</option>
+                        <option value="partner">Partner (Connector)</option>
                         <option value="manager">Manager</option>
                         <option value="admin">Admin</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Reporting To (Manager)</label>
+                    <select name="parent_id" class="form-select">
+                        <option value="">-- No Manager (Top Level) --</option>
+                        <?php foreach ($data['managers'] as $m): ?>
+                        <option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="form-hint">Used for override commission calculations.</small>
                 </div>
                 <div class="form-group">
                     <label>Password</label>
@@ -52,6 +63,11 @@
                     <div class="team-info">
                         <div class="team-name"><?= htmlspecialchars($u['name']) ?></div>
                         <div class="team-email"><?= htmlspecialchars($u['email']) ?></div>
+                        <?php if ($u['manager_name']): ?>
+                        <div class="team-manager" style="font-size:11px; color:#64748b; margin-top:2px">
+                            <i class="fas fa-level-up-alt" style="transform:rotate(90deg)"></i> Under: <?= htmlspecialchars($u['manager_name']) ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <span class="role-badge role-<?= $u['role'] ?>"><?= ucfirst($u['role']) ?></span>
                     <?php if ($u['id'] != Security::userId()): ?>

@@ -27,6 +27,13 @@
         <div class="card-body">
             <form method="POST" action="index.php?page=import&action=upload" enctype="multipart/form-data" id="importForm">
                 <?= Security::csrfField() ?>
+                <div class="form-group" style="margin-bottom:16px">
+                    <label style="font-weight:600; font-size:13px; color:#94a3b8">IMPORT TYPE</label>
+                    <select name="import_type" class="form-select">
+                        <option value="leads" selected>Leads / Customers</option>
+                        <option value="payouts">Client Payouts</option>
+                    </select>
+                </div>
                 <div class="upload-zone" id="uploadZone">
                     <div class="upload-icon"><i class="fas fa-file-excel"></i></div>
                     <h3>Drop your file here</h3>

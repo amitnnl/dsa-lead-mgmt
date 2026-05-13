@@ -13,6 +13,9 @@
     <link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" rel="stylesheet">
     <link href="assets/css/app.css" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#226e54">
+    <link rel="apple-touch-icon" href="assets/img/icon-192.png">
     <script>
         // Immediate theme check to prevent flash
         if (localStorage.getItem('theme') === 'light') {
@@ -30,6 +33,17 @@
         </div>
 
         <nav class="sidebar-nav">
+            <?php if ($_SESSION['user_role'] === 'partner'): ?>
+            <a href="index.php?page=partner" class="nav-item <?= ($data['page'] ?? '') === 'partner_dashboard' ? 'active' : '' ?>">
+                <i class="fas fa-th-large"></i><span>Partner Dashboard</span>
+            </a>
+            <a href="index.php?page=partner&action=submit_lead" class="nav-item <?= ($data['page'] ?? '') === 'partner_submit' ? 'active' : '' ?>">
+                <i class="fas fa-plus-circle"></i><span>Submit Lead</span>
+            </a>
+            <a href="index.php?page=partner&action=payouts" class="nav-item <?= ($data['page'] ?? '') === 'partner_payouts' ? 'active' : '' ?>">
+                <i class="fas fa-hand-holding-usd"></i><span>My Payouts</span>
+            </a>
+            <?php else: ?>
             <a href="index.php?page=dashboard" class="nav-item <?= ($data['page'] ?? '') === 'dashboard' ? 'active' : '' ?>">
                 <i class="fas fa-th-large"></i><span>Dashboard</span>
             </a>
@@ -42,17 +56,28 @@
             <a href="index.php?page=activity" class="nav-item <?= ($data['page'] ?? '') === 'activity' ? 'active' : '' ?>">
                 <i class="fas fa-history"></i><span>Activity Log</span>
             </a>
+            <?php endif; ?>
 
             <div class="nav-section">Account</div>
             <a href="index.php?page=settings" class="nav-item <?= ($data['page'] ?? '') === 'settings' ? 'active' : '' ?>">
                 <i class="fas fa-user-cog"></i><span>My Profile</span>
             </a>
             <?php if (Security::isAdmin()): ?>
+            <div class="nav-section">Administration</div>
             <a href="index.php?page=settings&action=users" class="nav-item <?= ($data['page'] ?? '') === 'users' ? 'active' : '' ?>">
-                <i class="fas fa-users-cog"></i><span>Team</span>
+                <i class="fas fa-users-cog"></i><span>Team Management</span>
+            </a>
+            <a href="index.php?page=settings&action=commissions" class="nav-item <?= ($data['page'] ?? '') === 'commissions' ? 'active' : '' ?>">
+                <i class="fas fa-percentage"></i><span>Commission Rates</span>
+            </a>
+            <a href="index.php?page=settings&action=slabs" class="nav-item <?= ($data['page'] ?? '') === 'slabs' ? 'active' : '' ?>">
+                <i class="fas fa-layer-group"></i><span>Payout Slabs</span>
             </a>
             <a href="index.php?page=settings&action=api_keys" class="nav-item <?= ($data['page'] ?? '') === 'api_keys' ? 'active' : '' ?>">
                 <i class="fas fa-plug"></i><span>API Integration</span>
+            </a>
+            <a href="index.php?page=settings&action=login_history" class="nav-item <?= ($data['page'] ?? '') === 'login_history' ? 'active' : '' ?>">
+                <i class="fas fa-shield-alt"></i><span>Login History</span>
             </a>
             <?php endif; ?>
             <a href="index.php?page=logout" class="nav-item nav-logout">
@@ -126,5 +151,15 @@
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="assets/js/app.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Registration Failed', err));
+            });
+        }
+    </script>
 </body>
 </html>

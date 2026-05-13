@@ -33,6 +33,23 @@ class LeadController {
         if ($status) { $where .= ' AND l.status = ?'; $params[] = $status; }
         if ($grade) { $where .= ' AND l.lead_grade = ?'; $params[] = $grade; }
         if ($loanType) { $where .= ' AND l.loan_type = ?'; $params[] = $loanType; }
+        
+        // Role-based filtering
+        if (!Security::isAdmin()) {
+            if ($_SESSION['user_role'] === 'manager') {
+                // Manager sees their own + sub-agents' leads
+                $subAgentIds = array_column($this->db->fetchAll("SELECT id FROM users WHERE parent_id = ?", [Security::userId()]), 'id');
+                $allowedIds = array_merge([Security::userId()], $subAgentIds);
+                $placeholders = implode(',', array_fill(0, count($allowedIds), '?'));
+                $where .= " AND l.assigned_to IN ($placeholders)";
+                $params = array_merge($params, $allowedIds);
+            } else {
+                // Agent sees only their own
+                $where .= ' AND l.assigned_to = ?';
+                $params[] = Security::userId();
+            }
+        }
+
         if ($search) {
             $where .= ' AND (l.customer_name LIKE ? OR l.phone_number LIKE ? OR l.email_address LIKE ? OR l.city LIKE ?)';
             $s = "%{$search}%";
@@ -116,7 +133,18 @@ class LeadController {
         if (!$lead) { $_SESSION['flash'] = ['type'=>'error','message'=>'Lead not found.']; header('Location: index.php?page=leads'); return; }
         $data = ['page' => 'lead_view', 'lead' => $lead];
         $data['activities'] = $this->db->fetchAll("SELECT a.*, u.name as user_name FROM activity_log a LEFT JOIN users u ON a.user_id = u.id WHERE a.lead_id = ? ORDER BY a.created_at DESC", [$id]);
+        $data['payouts'] = $this->db->fetchAll("SELECT * FROM client_payouts WHERE lead_id = ? OR (phone_number = ? AND phone_number IS NOT NULL AND phone_number != '') ORDER BY payout_date DESC", [$id, $lead['phone_number']]);
+        $data['documents'] = $this->db->fetchAll("SELECT d.*, u.name as uploader_name FROM lead_documents d LEFT JOIN users u ON d.uploaded_by = u.id WHERE d.lead_id = ? ORDER BY d.created_at DESC", [$id]);
         $data['agents'] = $this->db->fetchAll("SELECT id, name FROM users WHERE is_active = 1 ORDER BY name");
+
+        // Anti-Theft: Log every lead view
+        $this->db->insert('activity_log', [
+            'lead_id' => $id,
+            'user_id' => Security::userId(),
+            'action' => 'Lead Viewed',
+            'notes' => 'Viewed full lead profile'
+        ]);
+
         require __DIR__ . '/../views/layout.php';
     }
 

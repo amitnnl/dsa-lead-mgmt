@@ -15,7 +15,7 @@ class JobProcessor {
     /**
      * Queue an import job for background processing
      */
-    public function queueImport(int $batchId, string $filePath, string $ext, array $mapping, string $defaultSource, string $defaultStatus, array $headers): int {
+    public function queueImport(int $batchId, string $filePath, string $ext, array $mapping, string $defaultSource, string $defaultStatus, array $headers, string $importType = 'leads'): int {
         return $this->db->insert('job_queue', [
             'type' => 'import',
             'batch_id' => $batchId,
@@ -26,6 +26,7 @@ class JobProcessor {
                 'default_source' => $defaultSource,
                 'default_status' => $defaultStatus,
                 'headers' => $headers,
+                'import_type' => $importType,
             ]),
             'status' => 'pending',
             'progress' => 0,
@@ -72,10 +73,12 @@ class JobProcessor {
         $defaultSource = $payload['default_source'];
         $defaultStatus = $payload['default_status'];
         $headers = $payload['headers'];
+        $importType = $payload['import_type'] ?? 'leads';
+        $sheet = $payload['sheet'] ?? 1;
 
         // Read all rows
         $importer = new ImportController();
-        $rows = $importer->readAllRowsPublic($filePath, $ext);
+        $rows = $importer->readAllRowsPublic($filePath, $ext, $sheet);
         $totalRows = count($rows);
 
         // Update totals
@@ -85,6 +88,7 @@ class JobProcessor {
         $imported = 0;
         $skipped = 0;
         $errors = 0;
+        $targetTable = ($importType === 'payouts') ? 'client_payouts' : 'leads';
 
         // Process in chunks
         $chunks = array_chunk($rows, $this->chunkSize);
@@ -93,14 +97,27 @@ class JobProcessor {
         foreach ($chunks as $chunk) {
             foreach ($chunk as $row) {
                 try {
-                    $leadData = $importer->mapRowToLeadPublic($row, $headers, $mapping, $defaultSource, $defaultStatus);
-                    if (empty($leadData['customer_name'])) { $skipped++; $processedSoFar++; continue; }
+                    $itemData = $importer->mapRowToItemPublic($row, $headers, $mapping, $defaultSource, $defaultStatus, $importType);
+                    
+                    if ($importType === 'leads') {
+                        if (empty($itemData['customer_name'])) { $skipped++; $processedSoFar++; continue; }
+                        $itemData['import_batch_id'] = $batchId;
+                        $itemData['lead_score'] = LeadScorer::calculate($itemData);
+                        $itemData['lead_grade'] = LeadScorer::getLabel($itemData['lead_score']);
+                    } else {
+                        if (empty($itemData['client_name']) && empty($itemData['payout_amount'])) { $skipped++; $processedSoFar++; continue; }
+                        $itemData['import_batch_id'] = $batchId;
 
-                    $leadData['import_batch_id'] = $batchId;
-                    $leadData['lead_score'] = LeadScorer::calculate($leadData);
-                    $leadData['lead_grade'] = LeadScorer::getLabel($leadData['lead_score']);
+                        // Try to link to existing lead by phone number
+                        if (!empty($itemData['phone_number'])) {
+                            $lead = $this->db->fetch("SELECT id FROM leads WHERE phone_number = ? LIMIT 1", [$itemData['phone_number']]);
+                            if ($lead) {
+                                $itemData['lead_id'] = $lead['id'];
+                            }
+                        }
+                    }
 
-                    $this->db->insert('leads', $leadData);
+                    $this->db->insert($targetTable, $itemData);
                     $imported++;
                 } catch (\Exception $e) {
                     $errors++;

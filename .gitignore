@@ -16,3 +16,9 @@ Thumbs.db
 
 # Prompt file (not needed on server)
 prompt.md
+# Config (Security)
+config/database.php
+
+# Scratch & Temporary
+scratch/
+.gemini/

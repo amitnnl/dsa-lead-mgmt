@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initDataTables();
     initImportProgress();
     initTheme();
+    initBulkActions();
 });
 
 /* ===== Sidebar Toggle ===== */
@@ -408,3 +409,75 @@ function showToast(message, type = 'success') {
 const style = document.createElement('style');
 style.textContent = `@keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }`;
 document.head.appendChild(style);
+/* ===== Bulk Actions ===== */
+function initBulkActions() {
+    const bar = document.getElementById('bulkActionBar');
+    const countDisplay = document.getElementById('selectedCount');
+    const applyBtn = document.getElementById('applyBulk');
+    const cancelBtn = document.getElementById('cancelBulk');
+    if (!bar) return;
+
+    const updateSelection = () => {
+        const checked = document.querySelectorAll('.lead-check:checked');
+        if (checked.length > 0) {
+            countDisplay.textContent = checked.length;
+            bar.classList.add('active');
+        } else {
+            bar.classList.remove('active');
+        }
+    };
+
+    // Listen for checkbox changes
+    document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('lead-check') || e.target.id === 'selectAll') {
+            updateSelection();
+        }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        document.querySelectorAll('.lead-check').forEach(cb => cb.checked = false);
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) selectAll.checked = false;
+        updateSelection();
+    });
+
+    applyBtn.addEventListener('click', async () => {
+        const leadIds = Array.from(document.querySelectorAll('.lead-check:checked')).map(cb => cb.value);
+        const newStatus = document.getElementById('bulkStatus').value;
+        const newAgent = document.getElementById('bulkAgent') ? document.getElementById('bulkAgent').value : '';
+
+        if (!newStatus && !newAgent) {
+            showToast('Please select a status or agent to update', 'error');
+            return;
+        }
+
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+
+        try {
+            const form = new FormData();
+            form.append('lead_ids', JSON.stringify(leadIds));
+            if (newStatus) form.append('status', newStatus);
+            if (newAgent) form.append('agent_id', newAgent);
+            form.append('csrf_token', getCsrfToken());
+
+            const resp = await fetch('index.php?page=api&action=bulk_update', {
+                method: 'POST', body: form
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                showToast(`Successfully updated ${leadIds.length} leads`, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(data.error || 'Failed to apply bulk update', 'error');
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Apply';
+            }
+        } catch (e) {
+            showToast('Error processing bulk update', 'error');
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Apply';
+        }
+    });
+}

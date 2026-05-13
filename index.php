@@ -77,6 +77,11 @@ switch ($page) {
         $ctrl = new ActivityController();
         $ctrl->handle($action);
         break;
+    case 'partner':
+        require_once __DIR__ . '/controllers/PartnerController.php';
+        $ctrl = new PartnerController();
+        $ctrl->handle($action);
+        break;
     case 'settings':
         require_once __DIR__ . '/controllers/SettingsController.php';
         $ctrl = new SettingsController();

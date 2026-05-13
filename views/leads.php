@@ -63,7 +63,7 @@ $filters = $data['filters'] ?? [];
         <table class="data-table" id="leadsTable">
             <thead>
                 <tr>
-                    <th class="th-check"><input type="checkbox" id="selectAll"></th>
+                    <?php if (Security::isAdmin()): ?><th class="th-check"><input type="checkbox" id="selectAll"></th><?php endif; ?>
                     <th>Name</th>
                     <th>Phone</th>
                     <th>City</th>
@@ -79,16 +79,16 @@ $filters = $data['filters'] ?? [];
             <tbody>
                 <?php foreach ($data['leads'] as $lead): ?>
                 <tr>
-                    <td><input type="checkbox" class="lead-check" value="<?= $lead['id'] ?>"></td>
+                    <?php if (Security::isAdmin()): ?><td><input type="checkbox" class="lead-check" value="<?= $lead['id'] ?>"></td><?php endif; ?>
                     <td class="cell-name">
                         <a href="index.php?page=leads&action=view&id=<?= $lead['id'] ?>"><?= htmlspecialchars($lead['customer_name']) ?></a>
                         <?php if ($lead['email_address']): ?>
-                        <div class="cell-sub"><?= htmlspecialchars($lead['email_address']) ?></div>
+                        <div class="cell-sub"><?= htmlspecialchars(Security::mask($lead['email_address'], 'email')) ?></div>
                         <?php endif; ?>
                     </td>
                     <td>
-                        <?= htmlspecialchars($lead['phone_number'] ?? '-') ?>
-                        <?php if ($lead['phone_number']): ?>
+                        <?= htmlspecialchars(Security::mask($lead['phone_number'] ?? '-', 'phone')) ?>
+                        <?php if ($lead['phone_number'] && Security::isAdmin()): ?>
                         <a href="tel:<?= $lead['phone_number'] ?>" class="cell-action" title="Call"><i class="fas fa-phone"></i></a>
                         <?php endif; ?>
                     </td>
@@ -119,6 +119,7 @@ $filters = $data['filters'] ?? [];
                     </td>
                     <td>
                         <div class="action-btns">
+                            <a href="<?= WhatsAppHelper::getLink($lead['phone_number'], WhatsAppHelper::getTemplate('followup', $lead)) ?>" target="_blank" class="btn-icon" title="WhatsApp Follow-up" style="color:#25d366"><i class="fab fa-whatsapp"></i></a>
                             <a href="index.php?page=leads&action=view&id=<?= $lead['id'] ?>" class="btn-icon" title="View"><i class="fas fa-eye"></i></a>
                             <a href="index.php?page=leads&action=edit&id=<?= $lead['id'] ?>" class="btn-icon" title="Edit"><i class="fas fa-pen"></i></a>
                         </div>
@@ -151,3 +152,54 @@ $filters = $data['filters'] ?? [];
         <?php endif; ?>
     </div>
 </div>
+
+<!-- Bulk Action Bar -->
+<div id="bulkActionBar" class="bulk-action-bar">
+    <div class="bulk-info">
+        <span id="selectedCount">0</span> leads selected
+    </div>
+    <div class="bulk-actions">
+        <select id="bulkStatus" class="form-select btn-sm">
+            <option value="">Update Status...</option>
+            <?php foreach (LEAD_STATUSES as $s => $cfg): ?>
+            <option value="<?= $s ?>"><?= $s ?></option>
+            <?php endforeach; ?>
+        </select>
+        
+        <?php if (Security::isAdmin()): ?>
+        <select id="bulkAgent" class="form-select btn-sm">
+            <option value="">Assign to...</option>
+            <?php foreach ($data['agents'] as $a): ?>
+            <option value="<?= $a['id'] ?>"><?= htmlspecialchars($a['name']) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <?php endif; ?>
+
+        <button id="applyBulk" class="btn btn-primary btn-sm">Apply</button>
+        <button id="cancelBulk" class="btn btn-ghost btn-sm">Cancel</button>
+    </div>
+</div>
+
+<style>
+.bulk-action-bar {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+}
+.bulk-action-bar.active { bottom: 30px; }
+.bulk-info { font-weight: 600; font-size: 14px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 24px; }
+.bulk-actions { display: flex; gap: 12px; }
+.bulk-action-bar .form-select { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+.bulk-action-bar .form-select option { background: #0f172a; color: white; }
+</style>

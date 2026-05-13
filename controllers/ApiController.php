@@ -37,6 +37,7 @@ class ApiController {
             case 'search_leads': $this->searchLeads(); break;
             case 'dashboard_stats': $this->dashboardStats(); break;
             case 'export_csv': $this->exportCsv(); break;
+            case 'bulk_update': $this->bulkUpdate(); break;
             case 'job_status': $this->jobStatus(); break;
             default: echo json_encode(['error' => 'Unknown action']); break;
         }
@@ -94,6 +95,18 @@ class ApiController {
     }
 
     private function exportCsv(): void {
+        if (!Security::can('export')) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Permission denied']); return;
+        }
+
+        // Audit Log: Record who exported data
+        $this->db->insert('activity_log', [
+            'user_id' => Security::userId(),
+            'action' => 'Data Exported',
+            'notes' => 'Full lead database export initiated'
+        ]);
+
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="leads_export_' . date('Y-m-d') . '.csv"');
 
@@ -110,6 +123,49 @@ class ApiController {
         }
         fclose($output);
         exit;
+    }
+
+    private function bulkUpdate(): void {
+        $leadIds = json_decode($_POST['lead_ids'] ?? '[]', true);
+        $status = Security::sanitize($_POST['status'] ?? '');
+        $agentId = intval($_POST['agent_id'] ?? 0);
+
+        if (empty($leadIds)) {
+            echo json_encode(['error' => 'No leads selected']); return;
+        }
+
+        $updates = [];
+        if ($status) $updates['status'] = $status;
+        if ($agentId) $updates['assigned_to'] = $agentId;
+        
+        if (empty($updates)) {
+            echo json_encode(['error' => 'No updates specified']); return;
+        }
+
+        foreach ($leadIds as $id) {
+            $id = intval($id);
+            $old = $this->db->fetch("SELECT status, assigned_to FROM leads WHERE id = ?", [$id]);
+            if (!$old) continue;
+
+            $this->db->update('leads', $updates, 'id = ?', [$id]);
+
+            // Log status change
+            if ($status && $old['status'] !== $status) {
+                $this->db->insert('activity_log', [
+                    'lead_id' => $id, 'user_id' => Security::userId(),
+                    'action' => 'Bulk Status Change', 'old_value' => $old['status'], 'new_value' => $status
+                ]);
+            }
+            // Log assignment change
+            if ($agentId && $old['assigned_to'] != $agentId) {
+                $this->db->insert('activity_log', [
+                    'lead_id' => $id, 'user_id' => Security::userId(),
+                    'action' => 'Bulk Reassignment', 'new_value' => 'Assigned via Bulk Action'
+                ]);
+            }
+        }
+
+        echo json_encode(['success' => true]);
     }
 
     private function jobStatus(): void {

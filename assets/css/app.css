@@ -82,7 +82,7 @@ a:hover { color:#a5b4fc; }
 /* ===== TOPBAR ===== */
 .topbar {
     height:var(--topbar-h); padding:0 28px; display:flex; align-items:center; gap:20px;
-    background:rgba(10,10,26,0.8); backdrop-filter:blur(20px);
+    background:rgba(10,10,26,0.8); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
     border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50;
 }
 .sidebar-toggle { display:none; background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; padding:8px; }
@@ -200,8 +200,8 @@ a:hover { color:#a5b4fc; }
 /* ===== STATUS PILL ===== */
 .status-pill {
     padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600;
-    background:color-mix(in srgb, var(--pill-color) 18%, transparent);
-    color:var(--pill-color); border:1px solid color-mix(in srgb, var(--pill-color) 30%, transparent);
+    background:rgba(var(--pill-color-rgb, 100, 116, 139), 0.1);
+    color:var(--pill-color); border:1px solid var(--pill-color);
     display:inline-flex; align-items:center;
 }
 .status-pill-lg { padding:6px 16px; font-size:13px; }
@@ -373,8 +373,7 @@ a:hover { color:#a5b4fc; }
 .detail-row:last-child { border-bottom:none; }
 .detail-label { font-size:12px; color:var(--text-muted); font-weight:500; }
 .detail-value { font-size:13px; font-weight:500; text-align:right; }
-.lead-detail-main { }
-.lead-detail-sidebar { }
+
 
 /* ===== UPLOAD ZONE ===== */
 .upload-zone {
@@ -523,7 +522,7 @@ table.dataTable thead .sorting_desc:after { opacity:1; color:var(--primary-hover
 .api-key-masked { font-size:11px; font-family:monospace; color:var(--text-dim); background:var(--surface-2); padding:4px 8px; border-radius:4px; }
 
 /* Key Reveal Overlay */
-.key-reveal-overlay { position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn 0.3s ease; }
+.key-reveal-overlay { position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn 0.3s ease; }
 .key-reveal-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:36px; max-width:520px; width:100%; text-align:center; box-shadow:var(--shadow-lg); }
 .key-reveal-icon { font-size:48px; color:var(--success); margin-bottom:16px; }
 .key-reveal-card h3 { font-size:20px; margin-bottom:8px; }

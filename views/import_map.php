@@ -10,10 +10,25 @@ $dbColumns = $data['db_columns'] ?? [];
     <div>
         <a href="index.php?page=import" class="btn btn-ghost btn-xs"><i class="fas fa-arrow-left"></i> Back</a>
         <h2>Map Columns — <?= htmlspecialchars($data['filename'] ?? '') ?></h2>
-        <div style="display:flex;gap:10px;margin-top:6px">
+        <div style="display:flex;gap:10px;margin-top:6px;align-items:center">
             <span class="badge badge-info"><i class="fas fa-table"></i> <?= number_format($data['row_count'] ?? 0) ?> rows detected</span>
             <?php if (!empty($data['is_large'])): ?>
-            <span class="badge badge-warning"><i class="fas fa-bolt"></i> Large file — will use background processing</span>
+            <span class="badge badge-warning"><i class="fas fa-bolt"></i> Large file — background processing</span>
+            <?php endif; ?>
+            
+            <?php if (count($data['sheets'] ?? []) > 1): ?>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
+                <label style="font-size:12px; font-weight:600; color:#94a3b8">SELECT SHEET:</label>
+                <form action="index.php?page=import&action=upload" method="POST" id="sheet-selector-form" style="margin:0">
+                    <?= Security::csrfField() ?>
+                    <input type="hidden" name="reselect_file" value="<?= htmlspecialchars($_SESSION['import_file'] ?? '') ?>">
+                    <select name="sheet" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:150px">
+                        <?php foreach ($data['sheets'] as $name => $idx): ?>
+                        <option value="<?= $idx ?>" <?= ($data['current_sheet'] == $idx) ? 'selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+            </div>
             <?php endif; ?>
         </div>
     </div>

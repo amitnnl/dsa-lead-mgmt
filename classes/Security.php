@@ -68,4 +68,32 @@ class Security {
     public static function userName(): string {
         return $_SESSION['user_name'] ?? 'Guest';
     }
+
+    /**
+     * Mask sensitive data (phone, email) for non-admins
+     */
+    public static function mask(string $input, string $type = 'phone'): string {
+        if (self::isAdmin()) return $input;
+        
+        if ($type === 'phone') {
+            return substr($input, 0, 2) . '*****' . substr($input, -3);
+        } else {
+            $parts = explode('@', $input);
+            if (count($parts) < 2) return '*****';
+            return substr($parts[0], 0, 1) . '***@' . $parts[1];
+        }
+    }
+
+    /**
+     * Check if current user has permission for an action
+     */
+    public static function can(string $action): bool {
+        if (self::isAdmin()) return true;
+        switch ($action) {
+            case 'export': return false;
+            case 'manage_users': return false;
+            case 'view_commissions': return false;
+            default: return true;
+        }
+    }
 }

@@ -34,48 +34,65 @@ class ImportController {
             header('Location: index.php?page=import'); return;
         }
 
-        if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['flash'] = ['type' => 'error', 'message' => 'File upload failed.'];
-            header('Location: index.php?page=import'); return;
+        if (isset($_POST['reselect_file']) && file_exists($_POST['reselect_file'])) {
+            $savedPath = $_POST['reselect_file'];
+            $ext = strtolower(pathinfo($savedPath, PATHINFO_EXTENSION));
+            $filename = $_SESSION['import_filename'] ?? 'uploaded_file';
+        } else {
+            if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
+                $_SESSION['flash'] = ['type' => 'error', 'message' => 'File upload failed.'];
+                header('Location: index.php?page=import'); return;
+            }
+
+            $file = $_FILES['import_file'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $filename = $file['name'];
+
+            if (!in_array($ext, ['csv', 'xlsx', 'xls'])) {
+                $_SESSION['flash'] = ['type' => 'error', 'message' => 'Only CSV and Excel files are supported.'];
+                header('Location: index.php?page=import'); return;
+            }
+
+            // Save uploaded file
+            if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0755, true);
+            $savedName = 'import_' . time() . '.' . $ext;
+            $savedPath = UPLOAD_DIR . $savedName;
+            move_uploaded_file($file['tmp_name'], $savedPath);
         }
 
-        $file = $_FILES['import_file'];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        // Read sheets from the file
+        $sheets = $this->getSheets($savedPath, $ext);
+        $selectedSheet = $_POST['sheet'] ?? array_keys($sheets)[0] ?? 1;
+        $importType = $_POST['import_type'] ?? 'leads';
 
-        if (!in_array($ext, ['csv', 'xlsx', 'xls'])) {
-            $_SESSION['flash'] = ['type' => 'error', 'message' => 'Only CSV and Excel files are supported.'];
-            header('Location: index.php?page=import'); return;
-        }
-
-        // Save uploaded file
-        if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0755, true);
-        $savedName = 'import_' . time() . '.' . $ext;
-        $savedPath = UPLOAD_DIR . $savedName;
-        move_uploaded_file($file['tmp_name'], $savedPath);
-
-        // Read headers from the file
-        $headers = $this->readHeaders($savedPath, $ext);
+        // Read headers from the selected sheet
+        $headers = $this->readHeaders($savedPath, $ext, $selectedSheet);
         if (empty($headers)) {
-            $_SESSION['flash'] = ['type' => 'error', 'message' => 'Could not read file headers.'];
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'Could not read file headers from the selected sheet.'];
             header('Location: index.php?page=import'); return;
         }
 
         // Count rows for async threshold decision
-        $rowCount = $this->countRows($savedPath, $ext);
+        $rowCount = $this->countRows($savedPath, $ext, $selectedSheet);
 
         // Store in session for mapping step
         $_SESSION['import_file'] = $savedPath;
-        $_SESSION['import_filename'] = $file['name'];
+        $_SESSION['import_filename'] = $filename;
         $_SESSION['import_headers'] = $headers;
         $_SESSION['import_ext'] = $ext;
         $_SESSION['import_row_count'] = $rowCount;
+        $_SESSION['import_sheet'] = $selectedSheet;
+        $_SESSION['import_type'] = $importType;
 
         // Show mapping page
         $data = [
             'page' => 'import_map',
             'headers' => $headers,
-            'filename' => $file['name'],
-            'db_columns' => $this->getDbColumns(),
+            'filename' => $filename,
+            'sheets' => $sheets,
+            'current_sheet' => $selectedSheet,
+            'import_type' => $importType,
+            'db_columns' => $this->getDbColumns($importType),
             'row_count' => $rowCount,
             'is_large' => $rowCount > $this->asyncThreshold,
         ];
@@ -92,6 +109,7 @@ class ImportController {
         $filename = $_SESSION['import_filename'] ?? 'unknown';
         $rowCount = $_SESSION['import_row_count'] ?? 0;
         $headers = $_SESSION['import_headers'] ?? [];
+        $importType = $_SESSION['import_type'] ?? 'leads';
 
         if (!file_exists($filePath)) {
             $_SESSION['flash'] = ['type' => 'error', 'message' => 'Import file not found.'];
@@ -109,52 +127,63 @@ class ImportController {
             'column_mapping' => json_encode($mapping),
             'user_id' => Security::userId(),
             'status' => 'processing',
+            'import_type' => $importType,
         ]);
 
         // Decision: sync or async
         if ($rowCount > $this->asyncThreshold) {
             // === ASYNC: Queue for background processing ===
             $processor = new JobProcessor();
-            $jobId = $processor->queueImport($batchId, $filePath, $ext, $mapping, $defaultSource, $defaultStatus, $headers);
+            $jobId = $processor->queueImport($batchId, $filePath, $ext, $mapping, $defaultSource, $defaultStatus, $headers, $importType);
 
             // Try to process immediately (inline async simulation)
-            // This works for files up to ~2000 rows within PHP's execution time
-            // For truly massive files, the worker.php cron handles it
             try {
-                set_time_limit(300); // Allow up to 5 minutes
+                set_time_limit(300);
                 $processor->processNext();
-            } catch (\Exception $e) {
-                // Job stays in queue for the cron worker
-            }
+            } catch (\Exception $e) {}
 
             // Cleanup session
-            unset($_SESSION['import_file'], $_SESSION['import_filename'], $_SESSION['import_headers'], $_SESSION['import_ext'], $_SESSION['import_row_count']);
+            unset($_SESSION['import_file'], $_SESSION['import_filename'], $_SESSION['import_headers'], $_SESSION['import_ext'], $_SESSION['import_row_count'], $_SESSION['import_type'], $_SESSION['import_sheet']);
 
-            // Check if job completed inline
             $jobStatus = JobProcessor::getJobStatus($jobId);
             if ($jobStatus && $jobStatus['status'] === 'completed') {
-                $_SESSION['flash'] = ['type' => 'success', 'message' => "Import complete! {$jobStatus['imported_rows']} leads imported, {$jobStatus['skipped_rows']} skipped, {$jobStatus['error_rows']} errors."];
+                $_SESSION['flash'] = ['type' => 'success', 'message' => "Import complete! {$jobStatus['imported_rows']} items imported."];
             } else {
-                $_SESSION['flash'] = ['type' => 'success', 'message' => "Large file queued for processing ({$rowCount} rows). Check import history for progress."];
-                $_SESSION['import_job_id'] = $jobId;
+                $_SESSION['flash'] = ['type' => 'success', 'message' => "Large file queued for processing ({$rowCount} rows)."];
             }
         } else {
             // === SYNC: Process immediately (small files) ===
-            $rows = $this->readAllRows($filePath, $ext);
+            $sheet = $_SESSION['import_sheet'] ?? 1;
+            $rows = $this->readAllRows($filePath, $ext, $sheet);
             $imported = 0;
             $skipped = 0;
             $errors = 0;
 
+            $targetTable = ($importType === 'payouts') ? 'client_payouts' : 'leads';
+
             foreach ($rows as $row) {
                 try {
-                    $leadData = $this->mapRowToLead($row, $headers, $mapping, $defaultSource, $defaultStatus);
-                    if (empty($leadData['customer_name'])) { $skipped++; continue; }
+                    $itemData = $this->mapRowToItem($row, $headers, $mapping, $defaultSource, $defaultStatus, $importType);
+                    
+                    if ($importType === 'leads') {
+                        if (empty($itemData['customer_name'])) { $skipped++; continue; }
+                        $itemData['import_batch_id'] = $batchId;
+                        $itemData['lead_score'] = LeadScorer::calculate($itemData);
+                        $itemData['lead_grade'] = LeadScorer::getLabel($itemData['lead_score']);
+                    } else {
+                        if (empty($itemData['client_name']) && empty($itemData['payout_amount'])) { $skipped++; continue; }
+                        $itemData['import_batch_id'] = $batchId;
+                        
+                        // Try to link to existing lead by phone number
+                        if (!empty($itemData['phone_number'])) {
+                            $lead = $this->db->fetch("SELECT id FROM leads WHERE phone_number = ? LIMIT 1", [$itemData['phone_number']]);
+                            if ($lead) {
+                                $itemData['lead_id'] = $lead['id'];
+                            }
+                        }
+                    }
 
-                    $leadData['import_batch_id'] = $batchId;
-                    $leadData['lead_score'] = LeadScorer::calculate($leadData);
-                    $leadData['lead_grade'] = LeadScorer::getLabel($leadData['lead_score']);
-
-                    $this->db->insert('leads', $leadData);
+                    $this->db->insert($targetTable, $itemData);
                     $imported++;
                 } catch (\Exception $e) {
                     $errors++;
@@ -182,7 +211,7 @@ class ImportController {
     /**
      * Count rows in a file (fast scan without loading everything into memory)
      */
-    private function countRows(string $path, string $ext): int {
+    private function countRows(string $path, string $ext, $sheet = 1): int {
         if ($ext === 'csv') {
             $count = 0;
             $handle = fopen($path, 'r');
@@ -191,19 +220,19 @@ class ImportController {
             return max(0, $count - 1); // Exclude header
         }
         // For xlsx - just count rows from XML
-        $rows = $this->readAllRows($path, $ext);
+        $rows = $this->readAllRows($path, $ext, $sheet);
         return count($rows);
     }
 
     // ===== Public wrappers for JobProcessor access =====
-    public function readAllRowsPublic(string $path, string $ext): array {
-        return $this->readAllRows($path, $ext);
+    public function readAllRowsPublic(string $path, string $ext, $sheet = 1): array {
+        return $this->readAllRows($path, $ext, $sheet);
     }
-    public function mapRowToLeadPublic(array $row, array $headers, array $mapping, string $defaultSource, string $defaultStatus): array {
-        return $this->mapRowToLead($row, $headers, $mapping, $defaultSource, $defaultStatus);
+    public function mapRowToItemPublic(array $row, array $headers, array $mapping, string $defaultSource, string $defaultStatus, string $type = 'leads'): array {
+        return $this->mapRowToItem($row, $headers, $mapping, $defaultSource, $defaultStatus, $type);
     }
 
-    private function readHeaders(string $path, string $ext): array {
+    private function readHeaders(string $path, string $ext, $sheet = 1): array {
         if ($ext === 'csv') {
             $handle = fopen($path, 'r');
             $headers = fgetcsv($handle);
@@ -211,10 +240,10 @@ class ImportController {
             return $headers ?: [];
         }
         // For xlsx - use simple XML parsing or PhpSpreadsheet if available
-        return $this->readXlsxHeaders($path);
+        return $this->readXlsxHeaders($path, $sheet);
     }
 
-    private function readAllRows(string $path, string $ext): array {
+    private function readAllRows(string $path, string $ext, $sheet = 1): array {
         if ($ext === 'csv') {
             $rows = [];
             $handle = fopen($path, 'r');
@@ -225,16 +254,18 @@ class ImportController {
             fclose($handle);
             return $rows;
         }
-        return $this->readXlsxRows($path);
+        return $this->readXlsxRows($path, $sheet);
     }
 
-    private function readXlsxHeaders(string $path): array {
+    private function readXlsxHeaders(string $path, $sheet = 1): array {
         // Try PhpSpreadsheet first
         if (class_exists('\\PhpOffice\\PhpSpreadsheet\\IOFactory')) {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
-            $sheet = $spreadsheet->getActiveSheet();
+            $sheetObj = is_numeric($sheet) ? $spreadsheet->getSheet($sheet - 1) : $spreadsheet->getSheetByName($sheet);
+            if (!$sheetObj) $sheetObj = $spreadsheet->getActiveSheet();
+            
             $headers = [];
-            foreach ($sheet->getRowIterator(1, 1) as $row) {
+            foreach ($sheetObj->getRowIterator(1, 1) as $row) {
                 foreach ($row->getCellIterator() as $cell) {
                     $val = $cell->getValue();
                     if ($val !== null) $headers[] = trim($val);
@@ -244,16 +275,18 @@ class ImportController {
         }
 
         // Fallback: Parse xlsx as ZIP/XML
-        return $this->parseXlsxFallback($path, true);
+        return $this->parseXlsxFallback($path, true, $sheet);
     }
 
-    private function readXlsxRows(string $path): array {
+    private function readXlsxRows(string $path, $sheet = 1): array {
         if (class_exists('\\PhpOffice\\PhpSpreadsheet\\IOFactory')) {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
-            $sheet = $spreadsheet->getActiveSheet();
+            $sheetObj = is_numeric($sheet) ? $spreadsheet->getSheet($sheet - 1) : $spreadsheet->getSheetByName($sheet);
+            if (!$sheetObj) $sheetObj = $spreadsheet->getActiveSheet();
+            
             $rows = [];
             $firstRow = true;
-            foreach ($sheet->getRowIterator() as $row) {
+            foreach ($sheetObj->getRowIterator() as $row) {
                 if ($firstRow) { $firstRow = false; continue; }
                 $rowData = [];
                 foreach ($row->getCellIterator() as $cell) {
@@ -264,10 +297,10 @@ class ImportController {
             return $rows;
         }
 
-        return $this->parseXlsxFallback($path, false);
+        return $this->parseXlsxFallback($path, false, $sheet);
     }
 
-    private function parseXlsxFallback(string $path, bool $headersOnly): array {
+    private function parseXlsxFallback(string $path, bool $headersOnly, $sheet = 1): array {
         // Basic xlsx parser using ZipArchive
         $zip = new \ZipArchive();
         if ($zip->open($path) !== true) return [];
@@ -282,8 +315,27 @@ class ImportController {
             }
         }
 
-        // Read sheet1
-        $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+        // Determine sheet file
+        $sheetFile = "xl/worksheets/sheet{$sheet}.xml";
+        if (!$zip->locateName($sheetFile)) {
+            // If sheetN.xml doesn't exist, try to find mapping in workbook.xml
+            $workbookXml = $zip->getFromName('xl/workbook.xml');
+            if ($workbookXml) {
+                $xml = simplexml_load_string($workbookXml);
+                $idx = 1;
+                foreach ($xml->sheets->sheet as $s) {
+                    if ($idx == $sheet || (string)$s['name'] == $sheet) {
+                        // Usually they are sequential in files too, but let's be careful
+                        // A truly robust parser would read .rels but for fallback we assume sequential
+                        $sheetFile = "xl/worksheets/sheet{$idx}.xml";
+                        break;
+                    }
+                    $idx++;
+                }
+            }
+        }
+
+        $sheetXml = $zip->getFromName($sheetFile);
         $zip->close();
         if (!$sheetXml) return [];
 
@@ -309,16 +361,48 @@ class ImportController {
         return $rows;
     }
 
-    private function mapRowToLead(array $row, array $headers, array $mapping, string $defaultSource, string $defaultStatus): array {
-        $lead = [
-            'customer_name' => '', 'phone_number' => '', 'alt_phone' => '',
-            'email_address' => '', 'city' => '', 'state' => '', 'pincode' => '',
-            'loan_type' => '', 'loan_amount' => 0, 'monthly_income' => 0,
-            'employer' => '', 'employment_type' => null, 'address' => '',
-            'lead_source' => $defaultSource, 'status' => $defaultStatus,
-            'bank_name' => '', 'credit_score' => null, 'gender' => null,
-            'dob' => null, 'remarks' => '',
-        ];
+    /**
+     * Get list of sheets in an Excel file
+     */
+    private function getSheets(string $path, string $ext): array {
+        if ($ext !== 'xlsx') return ['Default' => 1];
+
+        $zip = new \ZipArchive();
+        if ($zip->open($path) !== true) return ['Sheet 1' => 1];
+
+        $sheets = [];
+        $workbookXml = $zip->getFromName('xl/workbook.xml');
+        if ($workbookXml) {
+            $xml = simplexml_load_string($workbookXml);
+            $idx = 1;
+            foreach ($xml->sheets->sheet as $sheet) {
+                $name = (string)$sheet['name'];
+                $sheets[$name] = $idx++;
+            }
+        }
+        $zip->close();
+
+        return !empty($sheets) ? $sheets : ['Sheet 1' => 1];
+    }
+
+    private function mapRowToItem(array $row, array $headers, array $mapping, string $defaultSource, string $defaultStatus, string $type = 'leads'): array {
+        if ($type === 'payouts') {
+            $item = [
+                'client_name' => '', 'phone_number' => '', 'payout_amount' => 0, 
+                'payout_date' => date('Y-m-d'), 'bank_name' => '', 'account_number' => '',
+                'transaction_id' => '', 'remarks' => ''
+            ];
+        } else {
+            $item = [
+                'customer_name' => '', 'phone_number' => '', 'alt_phone' => '',
+                'email_address' => '', 'city' => '', 'state' => '', 'pincode' => '',
+                'loan_type' => '', 'loan_amount' => 0, 'monthly_income' => 0,
+                'employer' => '', 'employment_type' => null, 'address' => '',
+                'lead_source' => $defaultSource, 'status' => $defaultStatus,
+                'bank_name' => '', 'credit_score' => null, 'gender' => null,
+                'dob' => null, 'remarks' => '',
+            ];
+        }
 
         foreach ($mapping as $fileCol => $dbCol) {
             if (empty($dbCol) || $dbCol === 'skip') continue;
@@ -326,23 +410,31 @@ class ImportController {
             $value = $row[$colIndex] ?? '';
             if (is_string($value)) $value = trim($value);
 
-            switch ($dbCol) {
-                case 'loan_amount':
-                case 'monthly_income':
-                    $lead[$dbCol] = floatval(preg_replace('/[^0-9.]/', '', $value));
-                    break;
-                case 'credit_score':
-                    $lead[$dbCol] = !empty($value) ? intval($value) : null;
-                    break;
-                default:
-                    $lead[$dbCol] = Security::sanitize((string) $value);
-                    break;
+            if ($dbCol === 'loan_amount' || $dbCol === 'monthly_income' || $dbCol === 'payout_amount') {
+                $item[$dbCol] = floatval(preg_replace('/[^0-9.]/', '', (string)$value));
+            } elseif ($dbCol === 'credit_score') {
+                $item[$dbCol] = !empty($value) ? intval($value) : null;
+            } else {
+                $item[$dbCol] = Security::sanitize((string) $value);
             }
         }
-        return $lead;
+        return $item;
     }
 
-    private function getDbColumns(): array {
+    private function getDbColumns(string $type = 'leads'): array {
+        if ($type === 'payouts') {
+            return [
+                'skip' => '-- Skip this column --',
+                'client_name' => 'Client Name',
+                'phone_number' => 'Phone Number (to match lead)',
+                'payout_amount' => 'Payout Amount',
+                'payout_date' => 'Payout Date',
+                'bank_name' => 'Bank Name',
+                'account_number' => 'Account Number',
+                'transaction_id' => 'Transaction ID',
+                'remarks' => 'Remarks',
+            ];
+        }
         return [
             'skip' => '-- Skip this column --',
             'customer_name' => 'Customer Name',

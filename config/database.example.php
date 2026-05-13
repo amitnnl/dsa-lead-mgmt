@@ -1,24 +1,19 @@
 <?php
 /**
- * Database Configuration
+ * Database Configuration (TEMPLATE)
  * 
- * For cPanel shared hosting:
- * 1. Create a MySQL database via cPanel → MySQL Databases
- * 2. Create a database user and assign it to the database (ALL PRIVILEGES)
- * 3. Update the credentials below
- * 
- * cPanel database names are usually prefixed: cpanel_username_dbname
- * cPanel db users are usually prefixed: cpanel_username_dbuser
+ * Rename this file to database.php and fill in your actual credentials.
+ * DO NOT commit database.php to GitHub.
  */
 
 // ===== CONFIGURATION SWITCH =====
-$is_production = false; // Set to TRUE when uploading to your live cPanel server
+$is_production = true; 
 
 if ($is_production) {
-    define('DB_HOST', 'localhost'); // Shared hosting is usually localhost
-    define('DB_NAME', 'amitnnl_dsa_leads'); 
-    define('DB_USER', 'amitnnl_admin');
-    define('DB_PASS', 'Your_Strong_Password_Here');
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'your_cpanel_db_name'); 
+    define('DB_USER', 'your_cpanel_db_user');
+    define('DB_PASS', 'your_cpanel_db_password');
 } else {
     define('DB_HOST', 'localhost');
     define('DB_NAME', 'dsa_lead_mgmt');
@@ -41,7 +36,7 @@ function getDB(): PDO {
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
         } catch (PDOException $e) {
-            die("Database connection failed: " . $e->getMessage());
+            die("Database connection failed. Please check your credentials in config/database.php");
         }
     }
     return $pdo;

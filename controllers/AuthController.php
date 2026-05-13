@@ -61,8 +61,23 @@ class AuthController {
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_role'] = $user['role'];
 
-        // Update last login
+        // Update last login & Record Security Log
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+        
         $this->db->update('users', ['last_login' => date('Y-m-d H:i:s')], 'id = ?', [$user['id']]);
+        
+        try {
+            $this->db->insert('login_logs', [
+                'user_id' => $user['id'],
+                'ip_address' => $ip,
+                'user_agent' => $ua,
+                'status' => 'Success'
+            ]);
+        } catch (Exception $e) {
+            // Silently fail if login_logs table is not yet created
+            error_log("Login logging failed: " . $e->getMessage());
+        }
 
         header('Location: index.php?page=dashboard');
     }
