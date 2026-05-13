@@ -82,6 +82,11 @@ switch ($page) {
         $ctrl = new PartnerController();
         $ctrl->handle($action);
         break;
+    case 'vehicles':
+        require_once __DIR__ . '/controllers/VehicleController.php';
+        $ctrl = new VehicleController();
+        $ctrl->handle($action);
+        break;
     case 'settings':
         require_once __DIR__ . '/controllers/SettingsController.php';
         $ctrl = new SettingsController();

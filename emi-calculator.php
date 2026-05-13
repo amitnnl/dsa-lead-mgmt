@@ -111,6 +111,13 @@
     </style>
 </head>
 <body>
+    <div style="padding:12px 24px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--surface)">
+        <a href="browse.php" style="font-size:16px; font-weight:800; color:var(--text); text-decoration:none; display:flex; align-items:center; gap:8px"><i class="fas fa-car" style="color:var(--warning)"></i> DSA AutoMart</a>
+        <div style="display:flex; gap:12px">
+            <a href="browse.php" style="color:var(--text-dim); text-decoration:none; font-size:13px; font-weight:600; padding:6px 12px; border-radius:6px">Browse Vehicles</a>
+            <a href="emi-calculator.php" style="color:var(--text); text-decoration:none; font-size:13px; font-weight:600; padding:6px 12px; border-radius:6px; background:var(--surface-2)">EMI Calculator</a>
+        </div>
+    </div>
     <div class="hero">
         <h1><i class="fas fa-car"></i> Vehicle Loan EMI Calculator</h1>
         <p>Calculate your monthly EMI instantly for Used Cars, Bikes & Commercial Vehicles. No login required.</p>

@@ -56,6 +56,9 @@
             <a href="index.php?page=activity" class="nav-item <?= ($data['page'] ?? '') === 'activity' ? 'active' : '' ?>">
                 <i class="fas fa-history"></i><span>Activity Log</span>
             </a>
+            <a href="index.php?page=vehicles" class="nav-item <?= in_array($data['page'] ?? '', ['vehicles','vehicle_form']) ? 'active' : '' ?>">
+                <i class="fas fa-car"></i><span>Vehicle Inventory</span>
+            </a>
             <?php endif; ?>
 
             <div class="nav-section">Account</div>
