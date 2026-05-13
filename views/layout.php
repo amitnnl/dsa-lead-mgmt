@@ -43,6 +43,19 @@
             <a href="index.php?page=partner&action=payouts" class="nav-item <?= ($data['page'] ?? '') === 'partner_payouts' ? 'active' : '' ?>">
                 <i class="fas fa-hand-holding-usd"></i><span>My Payouts</span>
             </a>
+            <?php elseif ($_SESSION['user_role'] === 'dealer'): ?>
+            <a href="index.php?page=dealer" class="nav-item <?= ($data['page'] ?? '') === 'dealer_dashboard' ? 'active' : '' ?>">
+                <i class="fas fa-store"></i><span>Dealer Dashboard</span>
+            </a>
+            <a href="index.php?page=dealer&action=my_vehicles" class="nav-item <?= ($data['page'] ?? '') === 'dealer_vehicles' ? 'active' : '' ?>">
+                <i class="fas fa-car"></i><span>My Vehicles</span>
+            </a>
+            <a href="index.php?page=dealer&action=add_vehicle" class="nav-item <?= ($data['page'] ?? '') === 'dealer_vehicle_form' ? 'active' : '' ?>">
+                <i class="fas fa-plus-circle"></i><span>List Vehicle</span>
+            </a>
+            <a href="index.php?page=dealer&action=inquiries" class="nav-item <?= ($data['page'] ?? '') === 'dealer_inquiries' ? 'active' : '' ?>">
+                <i class="fas fa-envelope-open"></i><span>Inquiries</span>
+            </a>
             <?php else: ?>
             <a href="index.php?page=dashboard" class="nav-item <?= ($data['page'] ?? '') === 'dashboard' ? 'active' : '' ?>">
                 <i class="fas fa-th-large"></i><span>Dashboard</span>

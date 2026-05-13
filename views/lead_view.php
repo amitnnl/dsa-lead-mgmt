@@ -263,6 +263,60 @@ $statusColor = LEAD_STATUSES[$lead['status']]['color'] ?? '#6b7280';
         </div>
         <?php endif; ?>
 
+        <!-- Vehicle Inspection Report (if exists) -->
+        <?php if ($isVehicleLoan && !empty($data['inspection'])): ?>
+        <?php $insp = $data['inspection']; 
+            $avg = round((($insp['exterior_score'] ?? 0) + ($insp['interior_score'] ?? 0) + ($insp['engine_score'] ?? 0) + ($insp['electrical_score'] ?? 0)) / 4, 1);
+            $verdictColors = ['Approved' => '#10b981', 'Conditional' => '#f59e0b', 'Rejected' => '#ef4444'];
+            $vc = $verdictColors[$insp['verdict']] ?? '#64748b';
+        ?>
+        <div class="card" style="margin-top:20px; border-left:4px solid #06b6d4">
+            <div class="card-header">
+                <h3><i class="fas fa-clipboard-check" style="color:#06b6d4"></i> Inspection Report</h3>
+                <span class="status-pill" style="--pill-color:<?= $vc ?>"><?= $insp['verdict'] ?></span>
+            </div>
+            <div class="card-body">
+                <div style="display:flex; gap:12px; margin-bottom:16px">
+                    <div style="font-size:12px; color:var(--text-dim)"><i class="fas fa-user"></i> <?= htmlspecialchars($insp['inspector_name'] ?? 'N/A') ?></div>
+                    <div style="font-size:12px; color:var(--text-dim)"><i class="fas fa-calendar"></i> <?= $insp['inspection_date'] ? date('M j, Y', strtotime($insp['inspection_date'])) : '-' ?></div>
+                    <?php if ($insp['estimated_value']): ?>
+                    <div style="font-size:12px; color:var(--text-dim)"><i class="fas fa-tag"></i> Estimated: ₹<?= number_format($insp['estimated_value']) ?></div>
+                    <?php endif; ?>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px">
+                    <?php 
+                    $scores = [
+                        ['Exterior', $insp['exterior_score'], 'fa-car', '#6366f1'],
+                        ['Interior', $insp['interior_score'], 'fa-couch', '#8b5cf6'],
+                        ['Engine', $insp['engine_score'], 'fa-cog', '#f59e0b'],
+                        ['Electrical', $insp['electrical_score'], 'fa-bolt', '#06b6d4'],
+                    ];
+                    foreach ($scores as $s):
+                        $scoreColor = $s[1] >= 7 ? '#10b981' : ($s[1] >= 5 ? '#f59e0b' : '#ef4444');
+                    ?>
+                    <div style="text-align:center; padding:16px 8px; background:var(--surface-2); border-radius:10px">
+                        <i class="fas <?= $s[2] ?>" style="font-size:18px; color:<?= $s[3] ?>; margin-bottom:8px; display:block"></i>
+                        <div style="font-size:24px; font-weight:800; color:<?= $scoreColor ?>"><?= $s[1] ?? '-' ?></div>
+                        <div style="font-size:11px; color:var(--text-dim)"><?= $s[0] ?> /10</div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px">
+                    <div><span style="color:var(--text-dim)">Tyres:</span> <strong><?= $insp['tyre_condition'] ?></strong></div>
+                    <div><span style="color:var(--text-dim)">A/C:</span> <strong><?= $insp['ac_working'] ? '✅ Working' : '❌ Not Working' ?></strong></div>
+                    <div><span style="color:var(--text-dim)">Accident:</span> <strong style="color:<?= $insp['accident_history'] === 'None' ? '#10b981' : '#ef4444' ?>"><?= $insp['accident_history'] ?></strong></div>
+                    <?php if ($insp['flood_affected']): ?><div><strong style="color:#ef4444">⚠️ Flood Affected</strong></div><?php endif; ?>
+                    <?php if ($insp['odometer_tampered']): ?><div><strong style="color:#ef4444">⚠️ Odometer Tampered</strong></div><?php endif; ?>
+                </div>
+                <?php if ($insp['remarks']): ?>
+                <div style="margin-top:12px; padding:10px 14px; background:var(--surface-2); border-radius:8px; font-size:12px; color:var(--text-dim)">
+                    <strong>Inspector Notes:</strong> <?= htmlspecialchars($insp['remarks']) ?>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Digital Vault (Documents) -->
         <div class="card" style="margin-top:24px">
             <div class="card-header">

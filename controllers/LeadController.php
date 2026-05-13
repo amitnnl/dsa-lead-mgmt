@@ -166,6 +166,12 @@ class LeadController {
                     "SELECT * FROM rc_transfers WHERE lead_id = ? ORDER BY id DESC LIMIT 1", [$id]
                 );
             } catch (Exception $e) { $data['rc_transfer'] = null; }
+
+            try {
+                $data['inspection'] = $this->db->fetch(
+                    "SELECT * FROM vehicle_inspections WHERE lead_id = ? ORDER BY id DESC LIMIT 1", [$id]
+                );
+            } catch (Exception $e) { $data['inspection'] = null; }
         }
 
         require __DIR__ . '/../views/layout.php';

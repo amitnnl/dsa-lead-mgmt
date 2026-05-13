@@ -28,6 +28,7 @@
                     <select name="role" class="form-select">
                         <option value="agent">Agent</option>
                         <option value="partner">Partner (Connector)</option>
+                        <option value="dealer">Dealer</option>
                         <option value="manager">Manager</option>
                         <option value="admin">Admin</option>
                     </select>

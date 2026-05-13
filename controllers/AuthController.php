@@ -78,7 +78,12 @@ class AuthController {
             // Silently fail if login_logs table is not yet created
             error_log("Login logging failed: " . $e->getMessage());
         }
-
-        header('Location: index.php?page=dashboard');
+        // Role-based redirect after login
+        $redirectMap = [
+            'partner' => 'index.php?page=partner',
+            'dealer'  => 'index.php?page=dealer',
+        ];
+        $redirect = $redirectMap[$user['role']] ?? 'index.php?page=dashboard';
+        header("Location: $redirect");
     }
 }
