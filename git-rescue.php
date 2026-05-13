@@ -1,36 +1,87 @@
 <?php
 /**
  * DSA LeadFlow - Git Rescue Script
- * This script forces the cPanel repository to reset and pull the latest code.
- * Use this when cPanel says "uncommitted changes exist".
+ * Fixes "local changes would be overwritten" errors on cPanel shared hosting.
+ * 
+ * USAGE: Upload to your live site, visit in browser, then DELETE this file.
  */
 
 header('Content-Type: text/plain');
+echo "=== DSA LeadFlow Git Rescue ===\n\n";
 
-// Path to your repository (usually the same as public_html or one level up)
-$repoPath = __DIR__; 
+// Step 1: Find the repository path
+// cPanel clones repos to ~/repositories/ or the deploy path itself
+$homeDir = getenv('HOME') ?: '/home/hotelsunplaza';
+$possiblePaths = [
+    $homeDir . '/repositories/dsa-lead-mgmt',
+    $homeDir . '/repositories/dsa-lead mgmt',
+    $homeDir . '/repositories/dsa_lead_mgmt',
+    __DIR__,  // Sometimes the repo IS the deploy directory
+];
 
-function run($cmd) {
-    global $repoPath;
+$repoPath = null;
+foreach ($possiblePaths as $path) {
+    if (is_dir($path . '/.git')) {
+        $repoPath = $path;
+        break;
+    }
+}
+
+// Also scan ~/repositories/ for any git repo
+if (!$repoPath && is_dir($homeDir . '/repositories')) {
+    $dirs = scandir($homeDir . '/repositories');
+    foreach ($dirs as $dir) {
+        if ($dir === '.' || $dir === '..') continue;
+        $check = $homeDir . '/repositories/' . $dir;
+        if (is_dir($check . '/.git')) {
+            $repoPath = $check;
+            echo "Found repository at: $check\n";
+            break;
+        }
+    }
+}
+
+if (!$repoPath) {
+    echo "ERROR: Could not find the Git repository.\n";
+    echo "Searched paths:\n";
+    foreach ($possiblePaths as $p) echo "  - $p\n";
+    echo "\nPlease check cPanel > Git Version Control for the repository path.\n";
+    exit;
+}
+
+echo "Repository found at: $repoPath\n\n";
+
+function run($cmd, $repoPath) {
     echo "Running: $cmd\n";
     $output = [];
     $resultCode = 0;
-    // We try to use the full path to git if standard git isn't in path
-    exec("cd $repoPath && git $cmd 2>&1", $output, $resultCode);
+    exec("cd " . escapeshellarg($repoPath) . " && git $cmd 2>&1", $output, $resultCode);
     echo implode("\n", $output) . "\n";
-    echo "Result Code: $resultCode\n\n";
+    echo "Exit code: $resultCode\n\n";
+    return $resultCode;
 }
 
-echo "=== Git Rescue Started ===\n\n";
+// Step 2: Save the production database.php if it exists
+$dbFile = $repoPath . '/config/database.php';
+$dbBackup = $homeDir . '/database_backup_' . date('YmdHis') . '.php';
+if (file_exists($dbFile)) {
+    copy($dbFile, $dbBackup);
+    echo "Backed up database.php to: $dbBackup\n\n";
+}
 
-// 1. Fetch latest
-run("fetch origin main");
+// Step 3: Discard local changes and force sync with GitHub
+echo "--- Fixing Git conflict ---\n";
+run("stash", $repoPath);
+run("fetch origin", $repoPath);
+run("reset --hard origin/main", $repoPath);
+run("clean -fd", $repoPath);
 
-// 2. Force reset to match GitHub exactly (this deletes server-only changes!)
-run("reset --hard origin/main");
+// Step 4: Restore the production database.php
+if (file_exists($dbBackup)) {
+    copy($dbBackup, $dbFile);
+    echo "Restored database.php from backup.\n\n";
+}
 
-// 3. Clean untracked files
-run("clean -fd");
-
-echo "=== Finished ===\n";
-echo "Now try to click 'Deploy' in cPanel again.";
+echo "=== RESCUE COMPLETE ===\n";
+echo "Now go to cPanel > Git Version Control > Deploy.\n";
+echo "IMPORTANT: Delete this git-rescue.php file from your server after use!\n";
