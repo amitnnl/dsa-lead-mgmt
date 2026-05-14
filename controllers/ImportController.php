@@ -399,7 +399,8 @@ class ImportController {
                 'loan_type' => '', 'loan_amount' => 0, 'monthly_income' => 0,
                 'employer' => '', 'employment_type' => null, 'address' => '',
                 'lead_source' => $defaultSource, 'status' => $defaultStatus,
-                'bank_name' => '', 'credit_score' => null, 'gender' => null,
+                'bank_name' => '', 'account_number' => '', 'ifsc_code' => '',
+                'credit_score' => null, 'gender' => null, 'father_name' => '',
                 'dob' => null, 'remarks' => '',
             ];
         }
@@ -443,6 +444,7 @@ class ImportController {
             'email_address' => 'Email Address',
             'dob' => 'Date of Birth',
             'gender' => 'Gender',
+            'father_name' => 'Father\'s Name',
             'address' => 'Address',
             'city' => 'City',
             'state' => 'State',
@@ -454,6 +456,8 @@ class ImportController {
             'employment_type' => 'Employment Type',
             'credit_score' => 'Credit Score',
             'bank_name' => 'Bank Name',
+            'account_number' => 'Account Number',
+            'ifsc_code' => 'IFSC Code',
             'remarks' => 'Remarks',
         ];
     }

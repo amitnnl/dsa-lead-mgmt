@@ -51,6 +51,7 @@ $statusColor = LEAD_STATUSES[$lead['status']]['color'] ?? '#6b7280';
                 <div class="card-body">
                     <div class="detail-grid">
                         <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value"><?= htmlspecialchars($lead['customer_name']) ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Father's Name</span><span class="detail-value"><?= htmlspecialchars($lead['father_name'] ?? '-') ?></span></div>
                         <div class="detail-row">
                             <span class="detail-label">Phone</span>
                             <span class="detail-value">
@@ -89,6 +90,8 @@ $statusColor = LEAD_STATUSES[$lead['status']]['color'] ?? '#6b7280';
                         <div class="detail-row"><span class="detail-label">Employment</span><span class="detail-value"><?= htmlspecialchars($lead['employment_type'] ?? '-') ?></span></div>
                         <div class="detail-row"><span class="detail-label">Credit Score</span><span class="detail-value"><?= $lead['credit_score'] ?? '-' ?></span></div>
                         <div class="detail-row"><span class="detail-label">Bank</span><span class="detail-value"><?= htmlspecialchars($lead['bank_name'] ?? '-') ?></span></div>
+                        <div class="detail-row"><span class="detail-label">Account No.</span><span class="detail-value"><?= !empty($lead['account_number']) ? htmlspecialchars(Security::mask($lead['account_number'], 'phone')) : '-' ?></span></div>
+                        <div class="detail-row"><span class="detail-label">IFSC Code</span><span class="detail-value"><?= htmlspecialchars($lead['ifsc_code'] ?? '-') ?></span></div>
                     </div>
                 </div>
             </div>

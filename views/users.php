@@ -45,8 +45,8 @@
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="text" name="password" class="form-input" value="agent123">
-                    <small class="form-hint">Default password. User should change after first login.</small>
+                    <input type="password" name="password" class="form-input" required minlength="8" placeholder="Min 8 chars, uppercase, lowercase, digit">
+                    <small class="form-hint">Must have 8+ characters, at least 1 uppercase, 1 lowercase, 1 digit.</small>
                 </div>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add User</button>
             </form>

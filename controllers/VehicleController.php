@@ -7,6 +7,12 @@ class VehicleController {
 
     public function __construct() {
         $this->db = new Database();
+        // Only admin and manager can manage vehicle inventory
+        $role = $_SESSION['user_role'] ?? '';
+        if (!in_array($role, ['admin', 'manager'])) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'Access denied.'];
+            header('Location: index.php?page=dashboard'); exit;
+        }
     }
 
     public function handle(string $action): void {

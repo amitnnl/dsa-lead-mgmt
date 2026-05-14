@@ -1,22 +1,65 @@
-# Deny access to sensitive directories
+# ===== HTTPS Enforcement (Production) =====
+# Uncomment the next 3 lines on your live server to force HTTPS
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ===== Block Sensitive Directories =====
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # Block access to config, classes, controllers, views directories
-    RewriteRule ^config/ - [F,L]
-    RewriteRule ^classes/ - [F,L]
-    RewriteRule ^controllers/ - [F,L]
-    RewriteRule ^views/ - [F,L]
+    # Block access to database migrations, scratch, and config
     RewriteRule ^database/ - [F,L]
-    RewriteRule ^uploads/ - [F,L]
+    RewriteRule ^scratch/ - [F,L]
+    RewriteRule ^config/ - [F,L]
 </IfModule>
 
-# Prevent directory listing
+# Block direct access to config and setup files
+<FilesMatch "^(database|app|setup|setup_enterprise|git-rescue)\.php$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# ===== Security Headers =====
+<IfModule mod_headers.c>
+    # Prevent MIME-type sniffing
+    Header set X-Content-Type-Options "nosniff"
+
+    # Prevent clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+
+    # Enable XSS protection
+    Header set X-XSS-Protection "1; mode=block"
+
+    # Control referrer leakage
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Disable dangerous browser features
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+    # Content-Security-Policy — prevent inline script injection
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self'"
+
+    # HSTS — Force HTTPS for 1 year (enable on production with HTTPS)
+    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>
+
+# ===== Prevent Directory Listing =====
 Options -Indexes
 
-# PHP settings
-<IfModule mod_php.c>
-    php_value upload_max_filesize 10M
-    php_value post_max_size 12M
-    php_value max_execution_time 120
-</IfModule>
+# ===== Block Sensitive Files & Directories =====
+# Block .git, .gemini, .env
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.gemini
+RedirectMatch 404 /\.env
+
+# Block access to markdown and log files
+<FilesMatch "\.(md|log|yml|yaml|json)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Allow manifest.json specifically (needed for PWA)
+<Files "manifest.json">
+    Order Allow,Deny
+    Allow from all
+</Files>

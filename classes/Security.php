@@ -96,4 +96,124 @@ class Security {
             default: return true;
         }
     }
+
+    // ===== BRUTE-FORCE PROTECTION =====
+
+    private static string $lockoutDir = '';
+
+    /**
+     * Get the lockout tracking directory (creates if needed)
+     */
+    private static function getLockoutDir(): string {
+        if (self::$lockoutDir) return self::$lockoutDir;
+        self::$lockoutDir = sys_get_temp_dir() . '/dsa_lockout';
+        if (!is_dir(self::$lockoutDir)) {
+            @mkdir(self::$lockoutDir, 0700, true);
+        }
+        return self::$lockoutDir;
+    }
+
+    /**
+     * Check if an IP address is currently locked out
+     * @return array ['locked' => bool, 'attempts' => int, 'remaining_seconds' => int]
+     */
+    public static function checkLockout(string $ip): array {
+        $file = self::getLockoutDir() . '/' . md5($ip) . '.json';
+        if (!file_exists($file)) {
+            return ['locked' => false, 'attempts' => 0, 'remaining_seconds' => 0];
+        }
+
+        $data = json_decode(file_get_contents($file), true);
+        if (!$data) return ['locked' => false, 'attempts' => 0, 'remaining_seconds' => 0];
+
+        $lockoutDuration = 900; // 15 minutes
+        $maxAttempts = 5;
+
+        // Clean up expired entries
+        if (isset($data['locked_at']) && (time() - $data['locked_at']) > $lockoutDuration) {
+            @unlink($file);
+            return ['locked' => false, 'attempts' => 0, 'remaining_seconds' => 0];
+        }
+
+        $remaining = 0;
+        if (isset($data['locked_at'])) {
+            $remaining = $lockoutDuration - (time() - $data['locked_at']);
+        }
+
+        return [
+            'locked' => ($data['attempts'] ?? 0) >= $maxAttempts,
+            'attempts' => $data['attempts'] ?? 0,
+            'remaining_seconds' => max(0, $remaining)
+        ];
+    }
+
+    /**
+     * Record a failed login attempt for an IP
+     */
+    public static function recordFailedAttempt(string $ip): int {
+        $file = self::getLockoutDir() . '/' . md5($ip) . '.json';
+        $data = ['attempts' => 0];
+
+        if (file_exists($file)) {
+            $existing = json_decode(file_get_contents($file), true);
+            if ($existing) $data = $existing;
+        }
+
+        $data['attempts'] = ($data['attempts'] ?? 0) + 1;
+        $data['last_attempt'] = time();
+
+        if ($data['attempts'] >= 5) {
+            $data['locked_at'] = time();
+        }
+
+        file_put_contents($file, json_encode($data));
+        return $data['attempts'];
+    }
+
+    /**
+     * Clear lockout data for an IP (on successful login)
+     */
+    public static function clearLockout(string $ip): void {
+        $file = self::getLockoutDir() . '/' . md5($ip) . '.json';
+        if (file_exists($file)) {
+            @unlink($file);
+        }
+    }
+
+    // ===== PASSWORD COMPLEXITY =====
+
+    /**
+     * Validate password complexity
+     * @return array ['valid' => bool, 'errors' => string[]]
+     */
+    public static function validatePasswordComplexity(string $password): array {
+        $errors = [];
+
+        if (strlen($password) < 8) {
+            $errors[] = 'Password must be at least 8 characters long';
+        }
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errors[] = 'Password must contain at least one uppercase letter';
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            $errors[] = 'Password must contain at least one lowercase letter';
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            $errors[] = 'Password must contain at least one digit';
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Regenerate session ID safely (prevents session fixation attacks)
+     */
+    public static function regenerateSession(): void {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+    }
 }

@@ -73,8 +73,11 @@ $dbColumns = $data['db_columns'] ?? [];
                                 'employment_type' => ['employment', 'employment type', 'employment_type', 'emp type'],
                                 'credit_score' => ['credit score', 'credit_score', 'cibil', 'cibil score'],
                                 'bank_name' => ['bank', 'bank name', 'bank_name'],
+                                'account_number' => ['account number', 'account_number', 'account no', 'a/c number', 'a/c no', 'acc number'],
+                                'ifsc_code' => ['ifsc', 'ifsc code', 'ifsc_code', 'ifsc no'],
                                 'dob' => ['dob', 'date of birth', 'birth date'],
                                 'gender' => ['gender', 'sex'],
+                                'father_name' => ['father name', 'father_name', "father's name", 's/o', 'son of', 'daughter of', 'd/o', 'guardian', 'guardian name'],
                                 'remarks' => ['remarks', 'notes', 'comment', 'comments'],
                             ];
                             foreach ($matchMap as $dbCol => $keywords) {

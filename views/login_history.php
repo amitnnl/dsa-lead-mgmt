@@ -37,7 +37,17 @@
                             <?= htmlspecialchars($log['user_agent']) ?>
                         </small>
                     </td>
-                    <td><span class="badge badge-success"><?= $log['status'] ?></span></td>
+                    <td>
+                        <?php 
+                        $statusClass = match($log['status'] ?? 'Success') {
+                            'Success' => 'badge-success',
+                            'Failed' => 'badge-danger',
+                            'Blocked (Lockout)' => 'badge-warning',
+                            default => 'badge-secondary'
+                        };
+                        ?>
+                        <span class="badge <?= $statusClass ?>"><?= htmlspecialchars($log['status']) ?></span>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($data['logs'])): ?>

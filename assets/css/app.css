@@ -196,6 +196,8 @@ a:hover { color:#a5b4fc; }
 .badge-dim { background:var(--surface-2); color:var(--text-muted); }
 .badge-hot { background:rgba(239,68,68,0.15); color:#fca5a5; }
 .badge-warm { background:rgba(245,158,11,0.15); color:#fcd34d; }
+.badge-danger { background:rgba(239,68,68,0.15); color:#fca5a5; }
+.badge-secondary { background:var(--surface-2); color:var(--text-dim); }
 
 /* ===== STATUS PILL ===== */
 .status-pill {

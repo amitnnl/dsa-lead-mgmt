@@ -45,9 +45,15 @@ $isEdit = $mode === 'edit';
                 </div>
                 <div class="form-row">
                     <div class="form-group">
+                        <label>Father's Name</label>
+                        <input type="text" name="father_name" class="form-input" value="<?= htmlspecialchars($lead['father_name'] ?? '') ?>" placeholder="Father's full name">
+                    </div>
+                    <div class="form-group">
                         <label>Date of Birth</label>
                         <input type="date" name="dob" class="form-input" value="<?= $lead['dob'] ?? '' ?>">
                     </div>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
                         <label>Gender</label>
                         <select name="gender" class="form-select">
@@ -132,7 +138,17 @@ $isEdit = $mode === 'edit';
                 </div>
                 <div class="form-group">
                     <label>Bank Name</label>
-                    <input type="text" name="bank_name" class="form-input" value="<?= htmlspecialchars($lead['bank_name'] ?? '') ?>">
+                    <input type="text" name="bank_name" class="form-input" value="<?= htmlspecialchars($lead['bank_name'] ?? '') ?>" placeholder="e.g. HDFC Bank, SBI, ICICI">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Account Number</label>
+                        <input type="text" name="account_number" class="form-input" value="<?= htmlspecialchars($lead['account_number'] ?? '') ?>" placeholder="e.g. 1234567890123" maxlength="30">
+                    </div>
+                    <div class="form-group">
+                        <label>IFSC Code</label>
+                        <input type="text" name="ifsc_code" class="form-input" value="<?= htmlspecialchars($lead['ifsc_code'] ?? '') ?>" placeholder="e.g. HDFC0001234" maxlength="15" style="text-transform:uppercase">
+                    </div>
                 </div>
             </div>
         </div>

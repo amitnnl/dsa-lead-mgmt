@@ -50,7 +50,8 @@ $user = $data['user'] ?? [];
                 </div>
                 <div class="form-group">
                     <label>New Password</label>
-                    <input type="password" name="new_password" class="form-input" required minlength="6">
+                    <input type="password" name="new_password" class="form-input" required minlength="8">
+                    <small class="form-hint">Min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit.</small>
                 </div>
                 <div class="form-group">
                     <label>Confirm New Password</label>

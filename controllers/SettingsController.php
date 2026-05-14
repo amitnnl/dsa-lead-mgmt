@@ -63,8 +63,9 @@ class SettingsController {
             $_SESSION['flash'] = ['type' => 'error', 'message' => 'Current password is incorrect.'];
             header('Location: index.php?page=settings'); return;
         }
-        if (strlen($new) < 6) {
-            $_SESSION['flash'] = ['type' => 'error', 'message' => 'New password must be at least 6 characters.'];
+        $complexity = Security::validatePasswordComplexity($new);
+        if (!$complexity['valid']) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => implode('. ', $complexity['errors'])];
             header('Location: index.php?page=settings'); return;
         }
         if ($new !== $confirm) {
@@ -98,9 +99,20 @@ class SettingsController {
         }
         $name = Security::sanitize($_POST['name'] ?? '');
         $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
-        $role = in_array($_POST['role'] ?? '', ['admin','manager','agent','partner']) ? $_POST['role'] : 'agent';
-        $password = $_POST['password'] ?? 'agent123';
+        $role = in_array($_POST['role'] ?? '', ['admin','manager','agent','partner','dealer']) ? $_POST['role'] : 'agent';
+        $password = $_POST['password'] ?? '';
         $parentId = !empty($_POST['parent_id']) ? intval($_POST['parent_id']) : null;
+
+        // Enforce password complexity
+        if (empty($password)) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'Password is required.'];
+            header('Location: index.php?page=settings&action=users'); return;
+        }
+        $complexity = Security::validatePasswordComplexity($password);
+        if (!$complexity['valid']) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => implode('. ', $complexity['errors'])];
+            header('Location: index.php?page=settings&action=users'); return;
+        }
 
         $existing = $this->db->fetch("SELECT id FROM users WHERE email = ?", [$email]);
         if ($existing) {
@@ -113,7 +125,7 @@ class SettingsController {
             'password' => Security::hashPassword($password),
             'parent_id' => $parentId
         ]);
-        $_SESSION['flash'] = ['type' => 'success', 'message' => "User '{$name}' created with password: {$password}"];
+        $_SESSION['flash'] = ['type' => 'success', 'message' => "User '{$name}' created successfully."];
         header('Location: index.php?page=settings&action=users');
     }
 
@@ -232,9 +244,9 @@ class SettingsController {
         if (!Security::isAdmin()) { header('Location: index.php'); return; }
         $data = ['page' => 'login_history'];
         $data['logs'] = $this->db->fetchAll(
-            "SELECT l.*, u.name as user_name, u.role 
+            "SELECT l.*, COALESCE(u.name, 'Unknown') as user_name, COALESCE(u.role, '-') as role 
              FROM login_logs l 
-             JOIN users u ON l.user_id = u.id 
+             LEFT JOIN users u ON l.user_id = u.id 
              ORDER BY l.created_at DESC LIMIT 100"
         );
         require __DIR__ . '/../views/layout.php';
