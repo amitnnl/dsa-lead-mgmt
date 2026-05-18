@@ -182,7 +182,7 @@
                     }
                 }).then(() => {
                     // Register the new service worker
-                    navigator.serviceWorker.register('/dsa-lead/sw.js')
+                    navigator.serviceWorker.register('sw.js')
                         .then(reg => console.log('SW Registered'))
                         .catch(err => console.log('SW Registration Failed', err));
                 });
