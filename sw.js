@@ -1,9 +1,9 @@
-const CACHE_NAME = 'dsa-leadflow-v3';
+const CACHE_NAME = 'dsa-leadflow-v4';
 const ASSETS = [
-  '/dsa-lead/',
-  '/dsa-lead/index.php',
-  '/dsa-lead/assets/css/app.css',
-  '/dsa-lead/assets/js/app.js',
+  './',
+  './index.php',
+  './assets/css/app.css',
+  './assets/js/app.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css'
 ];
