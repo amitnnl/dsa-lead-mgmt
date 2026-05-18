@@ -38,8 +38,12 @@ try {
     }
 }
 
-// Step 2: Create database (may fail on cPanel — that's OK if DB already exists)
+// Step 2: Create database (drops local database first if running locally to clear corrupted tablespaces)
 try {
+    if (DB_HOST === 'localhost' && DB_USER === 'root' && !$is_production) {
+        $pdo->exec("DROP DATABASE IF EXISTS `" . DB_NAME . "`");
+        $messages[] = "🗑️ Cleared corrupted local database '" . DB_NAME . "'";
+    }
     $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     $messages[] = "✅ Database '" . DB_NAME . "' created/verified";
 } catch (PDOException $e) {

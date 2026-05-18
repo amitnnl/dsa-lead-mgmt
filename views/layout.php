@@ -174,9 +174,18 @@
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('SW Registered'))
-                    .catch(err => console.log('SW Registration Failed', err));
+                // Force unregister all old service workers to clear broken CSP caches
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('Old SW Unregistered');
+                    }
+                }).then(() => {
+                    // Register the new service worker
+                    navigator.serviceWorker.register('/dsa-lead/sw.js')
+                        .then(reg => console.log('SW Registered'))
+                        .catch(err => console.log('SW Registration Failed', err));
+                });
             });
         }
     </script>
